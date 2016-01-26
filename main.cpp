@@ -8,7 +8,7 @@
 
 #define KEK_KEY_LEN  8
 #define ITERATION    2000
-#define INSERT_QUERY "INSERT INTO wifi(mac, pass) VALUES(?,?)"
+#define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?)"
 using namespace std;
 
 constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
@@ -36,7 +36,7 @@ int main(int argc, char ** argv) {
       return(1);
     }
 
-    rc = sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `wifi` (mac TEXT, ssid TEXT, pass TEXT);", NULL, 0, NULL);
+    rc = sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `wifi` (id INT primary key, mac TEXT, ssid TEXT, pass TEXT);", NULL, 0, NULL);
     if( rc!=SQLITE_OK ){
         fprintf(stderr, "Could not create table %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
@@ -51,21 +51,34 @@ int main(int argc, char ** argv) {
         return(1);
     }
 
-    for(int i=0; i<1000; i++){ // sqlite3_exec(db, "BEGIN", NULL, 0, NULL);
-        hex_str(mac, (char*)macChr, 3);
+    unsigned long long i=0;
+    for(int c3=0; c3<256; c3++)
+    for(int c4=0; c4<256; c4++)
+    for(int c5=0; c5<256; c5++, i++){ // sqlite3_exec(db, "BEGIN", NULL, 0, NULL);
+        mac[3]=(unsigned char)c3;
+        mac[4]=(unsigned char)c4;
+        mac[5]=(unsigned char)c5;
+
+        hex_str(mac, (char*)macChr+3, 3);
         generate_pass(mac, passwd);
 
         int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
         hex_str(passwd, (char*)pbkdfedChr, KEK_KEY_LEN);
 
         // Store to database.
-        sqlite3_bind_text(pStmt, 1, (char*)macChr, 3*2+1, SQLITE_STATIC);
-        sqlite3_bind_text(pStmt, 2, (char*)pbkdfedChr, KEK_KEY_LEN*2+1, SQLITE_STATIC);
+        sqlite3_bind_int64(pStmt, 1, i);
+        sqlite3_bind_text(pStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
+        sqlite3_bind_text(pStmt, 3, (char*)passwd, 8, SQLITE_STATIC);
+        sqlite3_bind_text(pStmt, 4, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
         if (sqlite3_step(pStmt) != SQLITE_DONE) {
-            printf("\nCould not step %d (execute) stmt %s\n", i, sqlite3_errmsg(db));
+            printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(db));
             return 1;
         }
         sqlite3_reset(pStmt);
+
+        if ((i%1000) == 0){
+            printf("  %02X %02X %02X\n", c3, c4, c5);
+        }
     }
 
     sqlite3_finalize(pStmt);
