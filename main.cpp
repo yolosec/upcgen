@@ -59,7 +59,7 @@ int main(int argc, char ** argv) {
         mac[4]=(unsigned char)c4;
         mac[5]=(unsigned char)c5;
 
-        hex_str(mac, (char*)macChr+3, 3);
+        hex_str(mac+3, (char*)macChr, 3);
         generate_pass(mac, passwd);
 
         int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
