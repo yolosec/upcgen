@@ -8,7 +8,8 @@
 
 #define KEK_KEY_LEN  8
 #define ITERATION    2000
-#define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?)"
+#define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?);"
+#define GET_LAST_QUERY "SELECT id FROM wifi WHERE 1 ORDER BY id DESC LIMIT 1;"
 using namespace std;
 
 constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
@@ -36,6 +37,7 @@ int main(int argc, char ** argv) {
       return(1);
     }
 
+    // Create table
     rc = sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `wifi` (id INT primary key, mac TEXT, ssid TEXT, pass TEXT);", NULL, 0, NULL);
     if( rc!=SQLITE_OK ){
         fprintf(stderr, "Could not create table %s\n", sqlite3_errmsg(db));
@@ -43,18 +45,69 @@ int main(int argc, char ** argv) {
         return(1);
     }
 
+    // Prepare statements
     sqlite3_stmt *pStmt;
+    sqlite3_stmt *pStmtLast;
+    sqlite3_stmt *pStmtBegin;
+    sqlite3_stmt *pStmtCommit;
     rc = sqlite3_prepare(db, INSERT_QUERY, -1, &pStmt, NULL);
     if(rc!=SQLITE_OK){
         fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
         return(1);
     }
+    rc = sqlite3_prepare(db, GET_LAST_QUERY, -1, &pStmtLast, NULL);
+    if(rc!=SQLITE_OK){
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return(1);
+    }
+    rc = sqlite3_prepare(db, "BEGIN;", -1, &pStmtBegin, NULL);
+    if(rc!=SQLITE_OK){
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return(1);
+    }
+    rc = sqlite3_prepare(db, "COMMIT;", -1, &pStmtCommit, NULL);
+    if(rc!=SQLITE_OK){
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return(1);
+    }
 
+    // Load last generated record
+    long long lastIdx=-1;
+    if (sqlite3_step(pStmtLast) == SQLITE_ROW){
+        lastIdx = sqlite3_column_int64(pStmtLast, 0);
+        cout << "Last generated idx: " << lastIdx << endl;
+    }
+
+    // Generate
+    int openTsx=0;
     unsigned long long i=0;
-    for(int c3=0; c3<256; c3++)
-    for(int c4=0; c4<256; c4++)
-    for(int c5=0; c5<256; c5++, i++){ // sqlite3_exec(db, "BEGIN", NULL, 0, NULL);
+    unsigned long long c=0;
+    for(int c3=0; c3<0x100; ++c3)
+    for(int c4=0; c4<0x100; ++c4)
+    for(int c5=0; c5<0x100; ++c5, ++i, ++c){
+        if (i <= lastIdx){
+            continue;
+        }
+
+        if ((c % 1000) == 0){
+            if (openTsx != 0){
+                if (sqlite3_step(pStmtCommit) != SQLITE_DONE){
+                    printf("\nCould not commit tsx %s\n", sqlite3_errmsg(db));
+                    return 1;
+                }
+            }
+
+            if (sqlite3_step(pStmtBegin) != SQLITE_DONE){
+                printf("\nCould not start tsx %s\n", sqlite3_errmsg(db));
+                return 1;
+            }
+            openTsx=1;
+        }
+
         mac[3]=(unsigned char)c3;
         mac[4]=(unsigned char)c4;
         mac[5]=(unsigned char)c5;
@@ -77,11 +130,22 @@ int main(int argc, char ** argv) {
         sqlite3_reset(pStmt);
 
         if ((i%1000) == 0){
-            printf("  %02X %02X %02X\n", c3, c4, c5);
+            printf("  %02X %02X %02X = %llu\n", c3, c4, c5, i);
+        }
+    }
+
+    // Finalize.
+    if (openTsx != 0){
+        if (sqlite3_step(pStmtCommit) != SQLITE_DONE){
+            printf("\nCould not commit tsx %s\n", sqlite3_errmsg(db));
+            return 1;
         }
     }
 
     sqlite3_finalize(pStmt);
+    sqlite3_finalize(pStmtLast);
+    sqlite3_finalize(pStmtBegin);
+    sqlite3_finalize(pStmtCommit);
     sqlite3_close(db);
     cout << "generated" << endl;
 
