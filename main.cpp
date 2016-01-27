@@ -5,12 +5,15 @@
 #include <openssl/crypto.h>
 #include <openssl/hmac.h>
 #include <sqlite3.h>
+#include <chrono>
 
 #define KEK_KEY_LEN  8
 #define ITERATION    2000
 #define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?);"
 #define GET_LAST_QUERY "SELECT id FROM wifi WHERE 1 ORDER BY id DESC LIMIT 1;"
 using namespace std;
+using ns = chrono::nanoseconds;
+using get_time = chrono::steady_clock ;
 
 constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -83,6 +86,9 @@ int main(int argc, char ** argv) {
     }
 
     // Generate
+    auto start = get_time::now();
+    auto startTsx = get_time::now();
+
     int openTsx=0;
     unsigned long long i=0;
     unsigned long long c=0;
@@ -105,6 +111,8 @@ int main(int argc, char ** argv) {
                 printf("\nCould not start tsx %s\n", sqlite3_errmsg(db));
                 return 1;
             }
+
+            startTsx = get_time::now();
             openTsx=1;
         }
 
@@ -130,7 +138,12 @@ int main(int argc, char ** argv) {
         sqlite3_reset(pStmt);
 
         if ((i%1000) == 0){
-            printf("  %02X %02X %02X = %llu\n", c3, c4, c5, i);
+            auto end = get_time::now();
+            auto diff1 = end - startTsx;
+            auto diff2 = end - start;
+            printf("  %02X %02X %02X = %llu. Time round: %lld ms, time total: %lld ms\n", c3, c4, c5, i,
+                   chrono::duration_cast<ns>(diff1).count(),
+                   chrono::duration_cast<ns>(diff2).count());
         }
     }
 
