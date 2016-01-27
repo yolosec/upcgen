@@ -89,7 +89,7 @@ int main(int argc, char ** argv) {
     for(int c3=0; c3<0x100; ++c3)
     for(int c4=0; c4<0x100; ++c4)
     for(int c5=0; c5<0x100; ++c5, ++i, ++c){
-        if (i <= lastIdx){
+        if (lastIdx > 0 && i <= lastIdx){
             continue;
         }
 
@@ -116,7 +116,7 @@ int main(int argc, char ** argv) {
         generate_pass(mac, passwd);
 
         int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
-        hex_str(passwd, (char*)pbkdfedChr, KEK_KEY_LEN);
+        hex_str(pbkdfed, (char*)pbkdfedChr, KEK_KEY_LEN);
 
         // Store to database.
         sqlite3_bind_int64(pStmt, 1, i);
