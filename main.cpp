@@ -31,6 +31,7 @@ constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
 
 char const * alternative_alphabet = "BBCDFFGHJJKLMNPQRSTVVWXYZZ";
 
+inline void generate_ssid(unsigned const char * mac, unsigned char * ssid);
 inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd);
 inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass);
 void hex_str(unsigned char *data, char *dst, int len);
@@ -205,6 +206,33 @@ int main(int argc, char ** argv) {
 
     return 0;
 }
+
+inline void generate_ssid(unsigned const char * mac, unsigned char * ssid)
+{
+  unsigned char buff1[100];
+	unsigned char buff2[100];
+	unsigned char h1[100], h2[100];
+	memset(buff1, 0, 100);
+	memset(buff2, 0, 100);
+	memset(h1, 0, 100);
+	memset(h2, 0, 100);
+
+	sprintf((char*)buff1, "%2X%2X%2X%2X%2X%2X555043444541554C5453534944", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, buff1, strlen((char*)buff1) + 1);
+	MD5_Final(h1, &ctx);
+
+	sprintf((char*)buff2, "%.02X%.02X%.02X%.02X%.02X%.02X", h1[0]&0xf, h1[1]&0xf, h1[2]&0xf, h1[3]&0xf, h1[4]&0xf, h1[5]&0xf);
+
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, buff2, strlen((char*)buff2) + 1);
+	MD5_Final(h2, &ctx);
+
+  // SSID is in format UPC%d%d%d%d%d%d%d, return only traling numbers
+	sprintf(ssid, "%d%d%d%d%d%d%d", m(h2[0]), m(h2[1]), m(h2[2]), m(h2[3]), m(h2[4]), m(h2[5]), m(h2[6]));
+}
+
 
 inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd)
 {
