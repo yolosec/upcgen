@@ -7,6 +7,7 @@
 #include <openssl/hmac.h>
 #include <sqlite3.h>
 #include <chrono>
+#include <cstring>
 #include "main.h"
 #include "ahocorasick/ahocorasick.h"
 #include "ahocorasick/actypes.h"
