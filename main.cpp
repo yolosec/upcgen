@@ -1,4 +1,5 @@
 #include <iostream>
+#include <signal.h>
 #include <openssl/md5.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
@@ -37,7 +38,8 @@ int prepare_db();
 int deinit_db();
 int init_trie();
 int deinit_trie();
-long contains_profanity(char const * pass, size_t len);
+inline long contains_profanity(char const * pass, size_t len);
+void intHandler(int dummy);
 
 sqlite3 *db;
 sqlite3_stmt *pStmt;
@@ -51,6 +53,7 @@ sqlite3_stmt *pPassStmtBegin;
 sqlite3_stmt *pPassStmtCommit;
 
 AC_TRIE_t *trie;
+static volatile int keepRunning = 1;
 
 int main(int argc, char ** argv) {
     cout << "Generation started..." << endl;
@@ -71,6 +74,7 @@ int main(int argc, char ** argv) {
     }
 
     init_trie();
+    signal(SIGINT, intHandler);
 
     // Load last generated record
     long long lastIdx=-1;
@@ -86,9 +90,9 @@ int main(int argc, char ** argv) {
     int openTsx=0;
     unsigned long long i=0;
     unsigned long long c=0;
-    for(int c3=0; c3<0x100; ++c3)
-    for(int c4=0; c4<0x100; ++c4)
-    for(int c5=0; c5<0x100; ++c5, ++i, ++c){
+    for(int c3=0; c3<0x100 && keepRunning; ++c3)
+    for(int c4=0; c4<0x100 && keepRunning; ++c4)
+    for(int c5=0; c5<0x100 && keepRunning; ++c5, ++i, ++c){
         if (lastIdx > 0 && i <= lastIdx){
             continue;
         }
@@ -136,12 +140,14 @@ int main(int argc, char ** argv) {
             printf("    profanity in: %02X %02X %02X = %10llu. Idx: %3ld, profanity: %12s, pass: %8s, newpass: %8s\n", c3, c4, c5, i,
                    profanity_idx, profanities[(int)profanity_idx], passwd, passwd_proffree);
 
-            // Check profanity once again.
+#ifdef CHECK_PROFANITIES_IN_PASS2
+            // Check profanity once again - not needed, there areno vowels in the alternative alphabet.
             long profanity_idx2 = contains_profanity((const char *)passwd_proffree, 8);
             if (profanity_idx2 >= 0){
                 printf("    PROFANITY-AHA! IN: %02X %02X %02X = %10llu. Idx: %3ld, profanity: %12s, pass: %8s\n", c3, c4, c5, i,
                        profanity_idx2, profanities[(int)profanity_idx2], passwd_proffree);
             }
+#endif
         }
 
         int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
@@ -195,7 +201,7 @@ int main(int argc, char ** argv) {
 
     deinit_db();
     deinit_trie();
-    cout << "Generation done." << endl;
+    cout << "Generation done. Kill triggered: " << (keepRunning==0?"YES":"NO") << "i: " << i << endl;
 
     return 0;
 }
@@ -396,7 +402,7 @@ int deinit_trie()
     return 0;
 }
 
-long contains_profanity(char const * pass, size_t len)
+inline long contains_profanity(char const * pass, size_t len)
 {
     long first_match = -1;
     AC_TEXT_t chunk;
@@ -414,4 +420,8 @@ long contains_profanity(char const * pass, size_t len)
     }
 
     return match.patterns[0].id.u.number;
+}
+
+void intHandler(int dummy) {
+    keepRunning = 0;
 }
