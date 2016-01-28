@@ -16,11 +16,11 @@
 
 // SQL queries.
 #define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?);"
-#define INSERT_PASS_QUERY "INSERT INTO wifi(id, mac, ssid, orig, pass) VALUES(?,?,?,?,?);"
+#define INSERT_PASS_QUERY "INSERT INTO wifi(id, mac, ssid, orig, pass, rudepass, profanity) VALUES(?,?,?,?,?,?,?);"
 #define GET_LAST_QUERY "SELECT id FROM wifi WHERE 1 ORDER BY id DESC LIMIT 1;"
 
 #define CREATE_TABLE "CREATE TABLE IF NOT EXISTS `wifi` (id INT primary key, mac TEXT, ssid TEXT, pass TEXT);"
-#define CREATE_PASS_TABLE "CREATE TABLE IF NOT EXISTS `wifi` (id INT primary key, mac TEXT, ssid TEXT, orig TEXT, pass TEXT);"
+#define CREATE_PASS_TABLE "CREATE TABLE IF NOT EXISTS `wifi` (id INT primary key, mac TEXT, ssid TEXT, orig TEXT, pass TEXT, rudepass TEXT, profanity TEXT);"
 
 using namespace std;
 using ns = chrono::nanoseconds;
@@ -63,6 +63,7 @@ int main(int argc, char ** argv) {
     unsigned char mac[] = {0x64, 0x7c, 0x34, 0x59, 0x1f, 0xf6};
     unsigned char macChr[100] = {0};
     unsigned char passwd[100] = {0};
+    unsigned char ssid[100] = {0};
     unsigned char passwd_proffree[100] = {0};
     unsigned char pbkdfed[100] = {0};
     unsigned char pbkdfedChr[100] = {0};
@@ -131,15 +132,17 @@ int main(int argc, char ** argv) {
 
         hex_str(mac+3, (char*)macChr, 3);
         generate_pass(mac, hash_buff, passwd);
+        generate_ssid(mac, ssid);
 
         // Profanity check
+        char const * profanity = NULL;
         long profanity_idx = contains_profanity((const char *)passwd, 8);
         if (profanity_idx >= 0){
             generate_profanity_free_pass(hash_buff, passwd_proffree);
             passwd2compute = passwd_proffree;
-
-            printf("    profanity in: %02X %02X %02X = %10llu. Idx: %3ld, profanity: %12s, pass: %8s, newpass: %8s\n", c3, c4, c5, i,
-                   profanity_idx, profanities[(int)profanity_idx], passwd, passwd_proffree);
+            profanity = profanities[(int)profanity_idx];
+            printf("    profanity in: %02X %02X %02X = %10llu. SSID: %s Idx: %3ld, profanity: %12s, pass: %8s, newpass: %8s\n", c3, c4, c5, i,
+                   ssid, profanity_idx, profanity, passwd, passwd_proffree);
 
 #ifdef CHECK_PROFANITIES_IN_PASS2
             // Check profanity once again - not needed, there areno vowels in the alternative alphabet.
@@ -157,7 +160,7 @@ int main(int argc, char ** argv) {
         // Store to database.
         sqlite3_bind_int64(pStmt, 1, i);
         sqlite3_bind_text(pStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
-        sqlite3_bind_text(pStmt, 3, (char*)passwd2compute, 8, SQLITE_STATIC); // TODO: SSID here...
+        sqlite3_bind_text(pStmt, 3, (char*)ssid, 7, SQLITE_STATIC);
         sqlite3_bind_text(pStmt, 4, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
         if (sqlite3_step(pStmt) != SQLITE_DONE) {
             printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(db));
@@ -168,9 +171,17 @@ int main(int argc, char ** argv) {
         // Store to pass db.
         sqlite3_bind_int64(pPassStmt, 1, i);
         sqlite3_bind_text(pPassStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
-        sqlite3_bind_text(pPassStmt, 3, (char*)passwd2compute, 8, SQLITE_STATIC); // TODO: SSID here...
+        sqlite3_bind_text(pPassStmt, 3, (char*)ssid, 7, SQLITE_STATIC);
         sqlite3_bind_text(pPassStmt, 4, (char*)passwd2compute, 8, SQLITE_STATIC);
         sqlite3_bind_text(pPassStmt, 5, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
+        if (profanity_idx >= 0){
+            sqlite3_bind_text(pPassStmt, 6, (char*)passwd, 8, SQLITE_STATIC);
+            sqlite3_bind_text(pPassStmt, 7, (char*)profanity, (int)strlen(profanity), SQLITE_STATIC);
+        } else {
+            sqlite3_bind_null(pPassStmt, 6);
+            sqlite3_bind_null(pPassStmt, 7);
+        }
+
         if (sqlite3_step(pPassStmt) != SQLITE_DONE) {
             printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(dbPass));
             return 1;
@@ -209,7 +220,8 @@ int main(int argc, char ** argv) {
 
 inline void generate_ssid(unsigned const char * mac, unsigned char * ssid)
 {
-  unsigned char buff1[100];
+    MD5_CTX ctx;
+    unsigned char buff1[100];
 	unsigned char buff2[100];
 	unsigned char h1[100], h2[100];
 	memset(buff1, 0, 100);
@@ -230,9 +242,8 @@ inline void generate_ssid(unsigned const char * mac, unsigned char * ssid)
 	MD5_Final(h2, &ctx);
 
   // SSID is in format UPC%d%d%d%d%d%d%d, return only traling numbers
-	sprintf(ssid, "%d%d%d%d%d%d%d", m(h2[0]), m(h2[1]), m(h2[2]), m(h2[3]), m(h2[4]), m(h2[5]), m(h2[6]));
+    sprintf((char*)ssid, "%d%d%d%d%d%d%d", h2[0]%10, h2[1]%10, h2[2]%10, h2[3]%10, h2[4]%10, h2[5]%10, h2[6]%10);
 }
-
 
 inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd)
 {
@@ -275,7 +286,8 @@ inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, u
     return 0;
 }
 
-inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass){
+inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass)
+{
     sprintf((char*)new_pass, "%c%c%c%c%c%c%c%c",
             alternative_alphabet[((hash_buff[0]+hash_buff[8]) % 0x1Au)],
             alternative_alphabet[((hash_buff[1]+hash_buff[9]) % 0x1Au)],
@@ -348,21 +360,21 @@ int prepare_db()
     }
 
     // Prepare statements for passwd db.
-    rc = sqlite3_prepare(dbPass, INSERT_QUERY, -1, &pPassStmt, NULL);
+    rc = sqlite3_prepare(dbPass, INSERT_PASS_QUERY, -1, &pPassStmt, NULL);
     if(rc!=SQLITE_OK){
-        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(dbPass));
         sqlite3_close(db);
         return(1);
     }
     rc = sqlite3_prepare(dbPass, "BEGIN;", -1, &pPassStmtBegin, NULL);
     if(rc!=SQLITE_OK){
-        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(dbPass));
         sqlite3_close(db);
         return(1);
     }
     rc = sqlite3_prepare(dbPass, "COMMIT;", -1, &pPassStmtCommit, NULL);
     if(rc!=SQLITE_OK){
-        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "Could not create prepared statement %s\n", sqlite3_errmsg(dbPass));
         sqlite3_close(db);
         return(1);
     }
@@ -450,6 +462,7 @@ inline long contains_profanity(char const * pass, size_t len)
     return match.patterns[0].id.u.number;
 }
 
-void intHandler(int dummy) {
+void intHandler(int dummy)
+{
     keepRunning = 0;
 }
