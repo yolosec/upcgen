@@ -6,6 +6,9 @@
 #include <openssl/hmac.h>
 #include <sqlite3.h>
 #include <chrono>
+#include "main.h"
+#include "ahocorasick/ahocorasick.h"
+#include "ahocorasick/actypes.h"
 
 #define KEK_KEY_LEN  8
 #define ITERATION    2000
@@ -25,10 +28,16 @@ using get_time = chrono::steady_clock ;
 constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-int generate_pass(unsigned const char * mac, unsigned char * passwd);
+char const * alternative_alphabet = "BBCDFFGHJJKLMNPQRSTVVWXYZZ";
+
+inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd);
+inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass);
 void hex_str(unsigned char *data, char *dst, int len);
 int prepare_db();
 int deinit_db();
+int init_trie();
+int deinit_trie();
+long contains_profanity(char const * pass, size_t len);
 
 sqlite3 *db;
 sqlite3_stmt *pStmt;
@@ -41,6 +50,8 @@ sqlite3_stmt *pPassStmt;
 sqlite3_stmt *pPassStmtBegin;
 sqlite3_stmt *pPassStmtCommit;
 
+AC_TRIE_t *trie;
+
 int main(int argc, char ** argv) {
     cout << "Generation started..." << endl;
 
@@ -48,14 +59,18 @@ int main(int argc, char ** argv) {
     unsigned char mac[] = {0x64, 0x7c, 0x34, 0x59, 0x1f, 0xf6};
     unsigned char macChr[100] = {0};
     unsigned char passwd[100] = {0};
+    unsigned char passwd_proffree[100] = {0};
     unsigned char pbkdfed[100] = {0};
     unsigned char pbkdfedChr[100] = {0};
     unsigned char salt[100] = {0};
+    unsigned char hash_buff[100];
 
     if (prepare_db() != 0){
         deinit_db();
         return -1;
     }
+
+    init_trie();
 
     // Load last generated record
     long long lastIdx=-1;
@@ -107,17 +122,35 @@ int main(int argc, char ** argv) {
         mac[3]=(unsigned char)c3;
         mac[4]=(unsigned char)c4;
         mac[5]=(unsigned char)c5;
+        unsigned char * passwd2compute = passwd;
 
         hex_str(mac+3, (char*)macChr, 3);
-        generate_pass(mac, passwd);
+        generate_pass(mac, hash_buff, passwd);
 
-        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
+        // Profanity check
+        long profanity_idx = contains_profanity((const char *)passwd, 8);
+        if (profanity_idx >= 0){
+            generate_profanity_free_pass(hash_buff, passwd_proffree);
+            passwd2compute = passwd_proffree;
+
+            printf("    profanity in: %02X %02X %02X = %10llu. Idx: %3ld, profanity: %12s, pass: %8s, newpass: %8s\n", c3, c4, c5, i,
+                   profanity_idx, profanities[(int)profanity_idx], passwd, passwd_proffree);
+
+            // Check profanity once again.
+            long profanity_idx2 = contains_profanity((const char *)passwd_proffree, 8);
+            if (profanity_idx2 >= 0){
+                printf("    PROFANITY-AHA! IN: %02X %02X %02X = %10llu. Idx: %3ld, profanity: %12s, pass: %8s\n", c3, c4, c5, i,
+                       profanity_idx2, profanities[(int)profanity_idx2], passwd_proffree);
+            }
+        }
+
+        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
         hex_str(pbkdfed, (char*)pbkdfedChr, KEK_KEY_LEN);
 
         // Store to database.
         sqlite3_bind_int64(pStmt, 1, i);
         sqlite3_bind_text(pStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
-        sqlite3_bind_text(pStmt, 3, (char*)passwd, 8, SQLITE_STATIC); // TODO: SSID here...
+        sqlite3_bind_text(pStmt, 3, (char*)passwd2compute, 8, SQLITE_STATIC); // TODO: SSID here...
         sqlite3_bind_text(pStmt, 4, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
         if (sqlite3_step(pStmt) != SQLITE_DONE) {
             printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(db));
@@ -128,8 +161,8 @@ int main(int argc, char ** argv) {
         // Store to pass db.
         sqlite3_bind_int64(pPassStmt, 1, i);
         sqlite3_bind_text(pPassStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
-        sqlite3_bind_text(pPassStmt, 3, (char*)passwd, 8, SQLITE_STATIC); // TODO: SSID here...
-        sqlite3_bind_text(pPassStmt, 4, (char*)passwd, 8, SQLITE_STATIC);
+        sqlite3_bind_text(pPassStmt, 3, (char*)passwd2compute, 8, SQLITE_STATIC); // TODO: SSID here...
+        sqlite3_bind_text(pPassStmt, 4, (char*)passwd2compute, 8, SQLITE_STATIC);
         sqlite3_bind_text(pPassStmt, 5, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
         if (sqlite3_step(pPassStmt) != SQLITE_DONE) {
             printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(dbPass));
@@ -142,7 +175,7 @@ int main(int argc, char ** argv) {
             auto end = get_time::now();
             auto diff1 = end - startTsx;
             auto diff2 = end - start;
-            printf("  %02X %02X %02X = %llu. Time round: %lld ms, time total: %lld ms\n", c3, c4, c5, i,
+            printf("  %02X %02X %02X = %10llu. Time round: %10lld ms, time total: %15lld ms\n", c3, c4, c5, i,
                    chrono::duration_cast<ns>(diff1).count(),
                    chrono::duration_cast<ns>(diff2).count());
         }
@@ -161,8 +194,63 @@ int main(int argc, char ** argv) {
     }
 
     deinit_db();
+    deinit_trie();
     cout << "Generation done." << endl;
 
+    return 0;
+}
+
+inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd)
+{
+    MD5_CTX ctx;
+    unsigned char buff1[100];
+    unsigned char buff2[100];
+    unsigned char buff3[100];
+    unsigned char res[100];
+    memset(buff1, 0, 100);
+    memset(buff2, 0, 100);
+    memset(buff3, 0, 100);
+    memset(hash_buff, 0, 100);
+
+    // 1.
+    sprintf((char*)buff1, "%2X%2X%2X%2X%2X%2X555043444541554C5450415353504852415345", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    // 2.
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, buff1, strlen((char*)buff1)+1);
+    MD5_Final(buff2, &ctx);
+
+    // 3.
+    sprintf((char*)buff3, "%.02X%.02X%.02X%.02X%.02X%.02X", buff2[0]&0xF, buff2[1]&0xF, buff2[2]&0xF, buff2[3]&0xF, buff2[4]&0xF, buff2[5]&0xF);
+
+    // 4.
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, buff3, strlen((char*)buff3)+1);
+    MD5_Final(hash_buff, &ctx);
+
+    sprintf((char*)passwd, "%c%c%c%c%c%c%c%c",
+            0x41u + ((hash_buff[0]+hash_buff[8]) % 0x1Au),
+            0x41u + ((hash_buff[1]+hash_buff[9]) % 0x1Au),
+            0x41u + ((hash_buff[2]+hash_buff[10]) % 0x1Au),
+            0x41u + ((hash_buff[3]+hash_buff[11]) % 0x1Au),
+            0x41u + ((hash_buff[4]+hash_buff[12]) % 0x1Au),
+            0x41u + ((hash_buff[5]+hash_buff[13]) % 0x1Au),
+            0x41u + ((hash_buff[6]+hash_buff[14]) % 0x1Au),
+            0x41u + ((hash_buff[7]+hash_buff[15]) % 0x1Au));
+
+    return 0;
+}
+
+inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass){
+    sprintf((char*)new_pass, "%c%c%c%c%c%c%c%c",
+            alternative_alphabet[((hash_buff[0]+hash_buff[8]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[1]+hash_buff[9]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[2]+hash_buff[10]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[3]+hash_buff[11]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[4]+hash_buff[12]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[5]+hash_buff[13]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[6]+hash_buff[14]) % 0x1Au)],
+            alternative_alphabet[((hash_buff[7]+hash_buff[15]) % 0x1Au)]);
     return 0;
 }
 
@@ -271,46 +359,59 @@ inline void hex_str(unsigned char *data, char *dst, int len)
     }
 }
 
-inline int generate_pass(unsigned const char * mac, unsigned char * passwd)
+int init_trie()
 {
-    MD5_CTX ctx;
-    unsigned char buff1[100];
-    unsigned char buff2[100];
-    unsigned char buff3[100];
-    unsigned char buff4[100];
-    unsigned char res[100];
-    memset(buff1, 0, 100);
-    memset(buff2, 0, 100);
-    memset(buff3, 0, 100);
-    memset(buff4, 0, 100);
+    AC_PATTERN_t patt;
 
-    // 1.
-    sprintf((char*)buff1, "%2X%2X%2X%2X%2X%2X555043444541554C5450415353504852415345", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    /* Get a new trie */
+    trie = ac_trie_create();
 
-    // 2.
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, buff1, strlen((char*)buff1)+1);
-    MD5_Final(buff2, &ctx);
+    for (int i = 0; i < PROFANITY_COUNT; i++) {
+        /* Fill the pattern data */
+        patt.ptext.astring = profanities[i];
+        patt.ptext.length = strlen(profanities[i]);
 
-    // 3.
-    sprintf((char*)buff3, "%.02X%.02X%.02X%.02X%.02X%.02X", buff2[0]&0xF, buff2[1]&0xF, buff2[2]&0xF, buff2[3]&0xF, buff2[4]&0xF, buff2[5]&0xF);
+        /* The replacement pattern is not applicable in this program, so better
+         * to initialize it with 0 */
+        patt.rtext.astring = NULL;
+        patt.rtext.length = 0;
 
-    // 4.
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, buff3, strlen((char*)buff3)+1);
-    MD5_Final(buff4, &ctx);
+        /* Pattern identifier is optional */
+        patt.id.u.number = i;
+        patt.id.type = AC_PATTID_TYPE_NUMBER;
 
-    sprintf((char*)passwd, "%c%c%c%c%c%c%c%c",
-            0x41u + ((buff4[0]+buff4[8]) % 0x1Au),
-            0x41u + ((buff4[1]+buff4[9]) % 0x1Au),
-            0x41u + ((buff4[2]+buff4[10]) % 0x1Au),
-            0x41u + ((buff4[3]+buff4[11]) % 0x1Au),
-            0x41u + ((buff4[4]+buff4[12]) % 0x1Au),
-            0x41u + ((buff4[5]+buff4[13]) % 0x1Au),
-            0x41u + ((buff4[6]+buff4[14]) % 0x1Au),
-            0x41u + ((buff4[7]+buff4[15]) % 0x1Au));
+        /* Add pattern to automata */
+        ac_trie_add (trie, &patt, 1);
+    }
 
-    // TODO: profanity checking, if it contains a rude word, substitute.
-
+    /* Now the preprocessing stage ends. You must finalize the trie. Remember
+     * that you can not add patterns anymore. */
+    ac_trie_finalize (trie);
     return 0;
+}
+
+int deinit_trie()
+{
+    ac_trie_release (trie);
+    return 0;
+}
+
+long contains_profanity(char const * pass, size_t len)
+{
+    long first_match = -1;
+    AC_TEXT_t chunk;
+    AC_MATCH_t match;
+    chunk.astring = pass;
+    chunk.length = len;
+
+    /* Set the input text */
+    ac_trie_settext (trie, &chunk, 0);
+
+    /* Find matches */
+    match = ac_trie_findnext(trie);
+    if (!match.size){
+        return first_match;
+    }
+
+    return match.patterns[0].id.u.number;
 }
