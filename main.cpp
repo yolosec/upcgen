@@ -67,7 +67,6 @@ int main(int argc, char ** argv) {
     unsigned char passwd_proffree[100] = {0};
     unsigned char pbkdfed[100] = {0};
     unsigned char pbkdfedChr[100] = {0};
-    unsigned char salt[100] = {0};
     unsigned char hash_buff[100];
 
     if (prepare_db() != 0){
@@ -154,7 +153,7 @@ int main(int argc, char ** argv) {
 #endif
         }
 
-        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, salt, 10, ITERATION, KEK_KEY_LEN, pbkdfed);
+        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, mac, 6, ITERATION, KEK_KEY_LEN, pbkdfed);
         hex_str(pbkdfed, (char*)pbkdfedChr, KEK_KEY_LEN);
 
         // Store to database.
