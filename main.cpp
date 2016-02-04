@@ -13,7 +13,7 @@
 #include "ahocorasick/actypes.h"
 
 #define KEK_KEY_LEN  8
-#define ITERATION    2000
+#define ITERATION    1000
 
 // SQL queries.
 #define INSERT_QUERY "INSERT INTO wifi(id, mac, ssid, pass) VALUES(?,?,?,?);"
@@ -63,7 +63,8 @@ int main(int argc, char ** argv) {
 
     int rc;
     unsigned char mac[] = {0x64, 0x7c, 0x34, 0x59, 0x1f, 0xf6};
-    unsigned char macChr[100] = {0};
+    unsigned char macChr[20] = {0};
+    unsigned char macChr2[20] = {0};
     unsigned char passwd[100] = {0};
     unsigned char ssid[100] = {0};
     unsigned char passwd_proffree[100] = {0};
@@ -132,6 +133,7 @@ int main(int argc, char ** argv) {
         unsigned char * passwd2compute = passwd;
 
         hex_str(mac+3, (char*)macChr, 3);
+        hex_str(mac, (char*)macChr2, 6);
         generate_pass(mac, hash_buff, passwd);
         generate_ssid(mac, ssid);
 
@@ -155,7 +157,7 @@ int main(int argc, char ** argv) {
 #endif
         }
 
-        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, mac, 6, ITERATION, KEK_KEY_LEN, pbkdfed);
+        int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, macChr2, 12, ITERATION, KEK_KEY_LEN, pbkdfed);
         hex_str(pbkdfed, (char*)pbkdfedChr, KEK_KEY_LEN);
 
         // Store to database.
@@ -304,14 +306,14 @@ inline int generate_profanity_free_pass(unsigned char * hash_buff, unsigned char
 int prepare_db()
 {
     int rc = 0;
-    rc = sqlite3_open("keys.db", &db);
+    rc = sqlite3_open("keys2.db", &db);
     if(rc){
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
         return(1);
     }
 
-    rc = sqlite3_open("keys_pass.db", &dbPass);
+    rc = sqlite3_open("keys_pass2.db", &dbPass);
     if(rc){
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         sqlite3_close(dbPass);
