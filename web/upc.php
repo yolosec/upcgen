@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>UPC password generator UBEE 3226</title>
+    <title>UPC password generator UBEE EVW3226</title>
     <style>
         body,div,p,a,td,input {font-family: Arial, Helvetica, sans-serif; font-size: 10pt;}
         h1 {font-size: 14pt; }
@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h1>UPC UBEE 3226 WPA2 &amp; SSID generator</h1>
+<h1>UPC UBEE EVW3226 WPA2 &amp; SSID generator</h1>
 <form action="upc.php" method="get">
     MAC:
     647c34<input type="text" size="8" name="mac" value="<?=(!isset($_REQUEST['mac'])?'':htmlentities(trim($_REQUEST['mac'])))?>">
@@ -62,7 +62,7 @@ if ($doCompute){
         $c = ' ';
         if ($ctr==4) $c = '+';
         if ($ctr==6) $c = '*';
-        printf("<div class=\"preformatted\"> %s MAC: 647c34%s, SSID: UPC%s, PBKDF2(in=passphrase, salt=647c34%s, it=2000, cn=8) = %s "
+        printf("<div class=\"preformatted\"> %s MAC: 647c34%s, SSID: UPC%s, PBKDF2(in=passphrase, salt=647c34%s, it=1000, cn=8) = %s "
                ."<input type=\"text\" name=\"pass_%d\" size=\"18\">"
                ."<input type=\"button\" value=\"Derive Key\" onclick=\"derive_key(%d, '647c34%s', '%s')\"></div>\n",
             $c, $cmac, $ssid, $cmac, $pass, $ctr, $ctr, $cmac, $pass);
@@ -83,7 +83,7 @@ if ($doCompute){
     function derive_key(ctr, salt, pass)
     {
         var password = document.getElementsByName('pass_'+ctr)[0].value;
-        var iterations = 2000;
+        var iterations = 1000;
         var bytes = 8;
 
         // Sanity checks
@@ -115,7 +115,8 @@ Or verify your password patch here <a href="http://anandam.name/pbkdf2/">online 
 <?php
 }
 ?>
-Test vector: MAC: 647c34000000, passwd: VAOUCAHR. <a href="upc.php?mac=000000">this param</a>
+<h2>Test vectors</h2>
+MAC: 647c34000000, passwd: VAOUCAHR. <a href="upc.php?mac=000000">this param</a>
 </body>
 </html>
 
