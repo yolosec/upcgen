@@ -2,7 +2,7 @@
  * UBEE 3226 WPA2 WiFi and SSID generator.
  * Reverse engineered by ph4r05, miroc
  * deadcode.me
- * 
+ *
  * gcc -o2 -Wall -o simple_gen simple_gen.c -lcrypto
 */
 

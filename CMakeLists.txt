@@ -43,3 +43,6 @@ LINK_DIRECTORIES(${LINK_DIRECTORIES} ${SQLITE3_LIB})
 
 # Linking
 target_link_libraries(upcgen ${OPENSSL_LIB} ${SQLITE3_LIB})
+
+# Release mode for fast computation
+set(CMAKE_BUILD_TYPE Release)
