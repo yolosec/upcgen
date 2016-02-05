@@ -24,13 +24,31 @@ if __name__ == '__main__':
     # Wrap sys.stdout into a StreamWriter to allow writing unicode.
     sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
 
+    profans=[]
     for curfile in args.file:
         with open(curfile, 'r') as f:
             lines = f.readlines()
-            print "profanities[] = {"
+            # print "profanities[] = {"
             for line in lines:
-                print "\"%s\"," % (line.strip())
-            print "};"
+                profans.append(line.strip())
+                # print "\"%s\"," % (line.strip())
+            # print "};"
         pass
     pass
+
+    padding=14
+    online=0
+    linebuff=""
+    for p in profans:
+        if online>8:
+            online=0
+            print linebuff
+            linebuff=""
+        nprof='"' + p + '",'
+        if (len(nprof)<padding):
+            nprof+=(' '*(padding-len(nprof)))
+        linebuff+=nprof
+        online+=1
+
+
 pass

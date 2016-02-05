@@ -22,7 +22,7 @@
  * The algorithm typically works for BSSID starting on: 647c34.
  *
  * Requires OpenSSL to build (MD5 algorithm)
- * gcc -o2 -Wall -o simple_gen simple_gen.c -lcrypto
+ * gcc -o2 -Wall -o ubee_keys ubee_keys.c -lcrypto
  *
  * @author Dusan Klinec (ph4r05)
  * @author Miroslav Svitok (miroc)
