@@ -7,6 +7,8 @@
  * by UPC last few months (newest models). THe targeted firmware was EVW3226_1.0.20
  * We thus extend previous generator [1] so it works on 99% devices in the wild.
  *
+ * With procedure described in [2] we were able to dump the whole router firmware from UBEE EVW3226.
+ *
  * Algorithms were reverse engineered from a binary shared library /fss/gw/lib/libUtility.so
  * Both default SSID and passphrase generator algorithms read MAC address from file /nvram/1/1
  * Based on this the result is computed.
@@ -34,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <ctype.h>
 #include <openssl/md5.h>
 
 // Result of a passphrase generator is a password of 8 characters using classical english alphabet, uppercase.
@@ -124,37 +127,45 @@ int ubee_generate_pass_raw(unsigned const char * mac, unsigned char * hash_buff,
 int ubee_enerate_profanity_free_pass(unsigned char * hash_buff, unsigned char const * new_pass);
 // Math ADD operation on MAC address
 void incmac(unsigned char * mac, unsigned char * newmac, int delta);
+// Read MAC from hex string
+int readmac(char const * machex, unsigned char * mac);
 
 void banner(void) {
         printf(
                 "\n"
-                        " ==================================================================================\n"
-                        "  upc_ubee_keys // WPA2 passphrase recovery tool for UPC%%07d UBEE EVW3226 devices \n"
-                        " ==================================================================================\n"
-                        "  by ph4r05, miroc\n\n"
+                        "==================================================================================\n"
+                        " upc_ubee_keys // WPA2 passphrase recovery tool for UPC%%07d UBEE EVW3226 devices \n"
+                        "==================================================================================\n"
+                        "by ph4r05, miroc\n\n"
         );
 }
 
 void usage(char *prog) {
-        printf("  Usage: %s <ESSID> <band>\n", prog);
-        printf("   - ESSID should be in 'UPCxxxxxxx' format\n");
-        printf("   - band should be either '24' for 2.4GHz or '5' for 5GHz\n\n");
+        printf(" Usage: %s <MAC>\n", prog);
+        printf("  - MAC is in hexadecimal format, last 3 bytes\n");
+        printf("  - As a demonstration, here is output for some mac address\n\n");
 }
 
 int main(int argc, char * argv[]){
-
-
-
-    // Put desired MAC here
     unsigned char mac[] = {0x64, 0x7c, 0x34, 0x19, 0x3c, 0x00};
     unsigned char ssid[16];
     unsigned char pass[16];
     int i;
 
+    // Banner + usage.
+    // Reading MAC from parameter.
+    banner();
+    if (argc != 2 || strlen(argv[1]) != 6) {
+        usage(argv[0]);
+    } else {
+        if (readmac(argv[1], mac) < 0){
+            printf(" ERROR: invalid MAC address entered\n");
+        }
+    }
+
     ubee_generate_ssid(mac, ssid, NULL);
     ubee_generate_pass(mac, pass, NULL);
-
-    printf("MAC: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s\n",
+    printf("  your-MAC: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s\n\n",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], ssid, pass);
 
     // Source MAC address used for computation of SSID & key is shifted.
@@ -302,3 +313,26 @@ void incmac(unsigned char * mac, unsigned char * newmac, int delta)
     }
 }
 
+int readmac(char const * machex, unsigned char * mac)
+{
+    int i;
+    for(i=0; i<3; i++){
+        mac[3+i] = 0;
+    }
+
+    for(i=0; i<6; i++){
+        int v;
+        int c = toupper(machex[i]);
+        if (c>='0' && c<='9'){
+            v = c-'0';
+        } else if (c>='A' && c<='F'){
+            v = 10+c-'A';
+        } else {
+            return -1;
+        }
+
+        mac[3+i/2] |= (v) << 4*((i+1)%2);
+    }
+
+    return 0;
+}
