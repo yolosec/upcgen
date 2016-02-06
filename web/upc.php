@@ -22,7 +22,6 @@
 <?php
 $doCompute=true;
 if (!isset($_REQUEST['mac'])){
-    //die('Nothing to do, pall. <a href="?mac=ff">Example</a>');
     $doCompute=false;
 }
 
@@ -59,13 +58,21 @@ if ($doCompute){
         $cmac = $arr['mac'];
         $ssid = $arr['ssid'];
         $pass = $arr['pass'];
-        $c = ' ';
-        if ($ctr==4) $c = '+';
-        if ($ctr==6) $c = '*';
-        printf("<div class=\"preformatted\"> %s MAC: 647c34%s, SSID: UPC%s, PBKDF2(in=passphrase, salt=647c34%s, it=1000, cn=8) = %s "
-               ."<input type=\"text\" name=\"pass_%d\" size=\"18\">"
+
+        $inpass = '';
+        if (isset($_REQUEST['pass']) && $cmac === $mac){
+            $inpass = ' value="'.htmlentities($_REQUEST['pass']).'" ';
+        }
+
+        $c = '   ';
+        if ($ctr==4) $c = '2.4';
+        if ($ctr==6) $c = '5  ';
+        if ($cmac === $mac) $c = '-> ';
+
+        printf("<div class=\"preformatted\">%s MAC: 647c34%s, SSID: UPC%s, PBKDF2(in=passphrase, salt=647c34%s, it=1000, cn=8) = %s "
+               ."<input type=\"text\" name=\"pass_%d\" size=\"18\"%s>"
                ."<input type=\"button\" value=\"Derive Key\" onclick=\"derive_key(%d, '647c34%s', '%s')\"></div>\n",
-            $c, $cmac, $ssid, $cmac, $pass, $ctr, $ctr, $cmac, $pass);
+            $c, $cmac, $ssid, $cmac, $pass, $ctr, $inpass, $ctr, $cmac, $pass);
 
         ++$ctr;
     }
@@ -116,7 +123,10 @@ Or verify your password patch here <a href="http://anandam.name/pbkdf2/">online 
 }
 ?>
 <h2>Test vectors</h2>
-MAC: 647c34000000, passwd: VAOUCAHR. <a href="upc.php?mac=000000">this param</a>
+<div class="preformatted">MAC: 647c34000000, passwd: VAOUCAHR <a href="upc.php?mac=000000&pass=VAOUCAHR">try</a></div>
+<div class="preformatted">MAC: 647c34123456, passwd: HAYQQHCS <a href="upc.php?mac=123456&pass=HAYQQHCS">try</a></div>
+<div class="preformatted">MAC: 647c34fb7784, passwd: RFDPFBGQ <a href="upc.php?mac=fb7784&pass=RFDPFBGQ">try</a></div>
+<div class="preformatted">MAC: 647c34ffffff, passwd: HBEMKCOW <a href="upc.php?mac=ffffff&pass=HBEMKCOW">try</a></div>
 </body>
 </html>
 
