@@ -391,6 +391,7 @@ int deinit_db()
     sqlite3_finalize(pStmtLast);
     sqlite3_finalize(pStmtBegin);
     sqlite3_finalize(pStmtCommit);
+    sqlite3_close(db);
 
     sqlite3_finalize(pPassStmt);
     sqlite3_finalize(pPassStmtBegin);
