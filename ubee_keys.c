@@ -28,8 +28,8 @@
  * @author Miroslav Svitok (miroc)
  *
  * References:
- * [1]: https://firefart.at/post/upc_ubee_fail/
  * [2]: https://haxx.in/upc_keys.c
+ * [1]: https://firefart.at/post/upc_ubee_fail/
 */
 
 #include <stdio.h>
@@ -115,6 +115,7 @@ const char * profanities[] = {
         "WACKS",      "WARTS",      "WEIRD",      "WENCH",      "WETLY",      "WHACK",      "WHOPS",      "WHORE",      "WILLY",
         "WIMPS",      "WIMPY",      "WINED",      "WINES",      "WINEY",      "WIZEN",      "WOADS",      "WODGE",      "WOFUL",
         "WOKEN",      "WOLDS",      "WOMAN",      "WOMBS",      "WOMBY",      "WOMEN",      "WONKS",      "WONKY",      "WOOED",
+        "WOOER",      "WOOSH",      "WOOZY",      "YOBBO",      "ZOOID",      "ZOOKS"
 };
 
 // Generates default SSID from source MAC
@@ -197,6 +198,7 @@ int ubee_generate_ssid(unsigned const char * mac, unsigned char * ssid, size_t *
         return -1;
     }
 
+    // MAC+hex(UPCDEAULTSSID)
     sprintf((char*)buff1, "%2X%2X%2X%2X%2X%2X555043444541554C5453534944", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     MD5_Init(&ctx);
@@ -256,7 +258,7 @@ int ubee_generate_pass_raw(unsigned const char * mac, unsigned char * hash_buff,
     memset(buff3, 0, 100);
     memset(hash_buff, 0, 100);
 
-    // 1.
+    // 1. MAC + hex(UPCDEAULTPASSPHRASE)
     sprintf((char*)buff1, "%2X%2X%2X%2X%2X%2X555043444541554C5450415353504852415345", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     // 2.
