@@ -5,6 +5,12 @@
 #ifndef UPCGEN_MAIN_H
 #define UPCGEN_MAIN_H
 
+// Result of a passphrase generator is a password of 8 characters using classical english alphabet, uppercase.
+// libUtility.so contains database of profanities. If any of word in this array happens to occur as a substring
+// in the computed passphrase, new passphrase is generated, now using alphabet without vowels to avoid another profanity.
+//                                  ABCDEFGHIJKLMNOPQRSTUVWXYZ
+#define UBEE_NONINSULTING_ALPHABET "BBCDFFGHJJKLMNPQRSTVVWXYZZ"
+// Simple macro to get size of profanities array
 #define PROFANITY_COUNT (sizeof(profanities)/sizeof(profanities[0]))
 // All profanities found in the source binary, alphabetically sorted, converted to upper case.
 // Address in the original binary is 0x00040D74.
@@ -71,6 +77,79 @@ const char * profanities[] = {
         "TARTY",      "TESTA",      "TESTS",      "TESTY",      "THIEF",      "THUDS",      "THUGS",      "THUJA",      "TIGHT",
         "TIGON",      "TIKES",      "TIKIS",      "TITS",       "TITTY",      "TUBAS",      "TUBBY",      "TUBED",      "TUCKS",
         "TURD",       "TURDS",      "TWATS",      "UDDER",      "UNDEE",      "UNDIE",      "UNSEX",      "UNZIP",      "UREAL",
+        "UREAS",      "UREIC",      "URIAL",      "URINE",      "UVEAL",      "UVEAS",      "UVULA",      "VACUA",      "VAGINA",
+        "VAGUS",      "VEINS",      "VEINY",      "VELAR",      "VELDS",      "VOMIT",      "VUGGY",      "VULGO",      "VULVA",
+        "WACKS",      "WARTS",      "WEIRD",      "WENCH",      "WETLY",      "WHACK",      "WHOPS",      "WHORE",      "WILLY",
+        "WIMPS",      "WIMPY",      "WINED",      "WINES",      "WINEY",      "WIZEN",      "WOADS",      "WODGE",      "WOFUL",
+        "WOKEN",      "WOLDS",      "WOMAN",      "WOMBS",      "WOMBY",      "WOMEN",      "WONKS",      "WONKY",      "WOOED",
+        "WOOER",      "WOOSH",      "WOOZY",      "YOBBO",      "ZOOID",      "ZOOKS"
+};
+
+// Simple macro to get size of profanities array
+#define PROFANITY_REDUCED_COUNT (sizeof(profanitiesReduced)/sizeof(profanitiesReduced[0]))
+const char * profanitiesReduced[] = {
+        "ABBO",       "ABUSE",                    "AGGRO",      "AIDS",       "ANAL",       "ANNAL",      "ANNAS",      "ARSES",
+        "ARSIS",      "ASS",                                                                "BABES",      "BALL",
+                                    "BANGS",      "BARFS",      "BARMY",      "BASTARD",    "BAWDS",      "BAWDY",      "BAWLS",
+        "BEERS",      "BELCH",      "BIGOT",      "BIMBO",      "BINGE",      "BITCH",      "BLONDE",     "BLOOD",      "BLOW",
+                                                  "BOFFS",      "BOGAN",      "BOLES",      "BOLLS",      "BONDAGE",    "BONED",
+        "BONER",      "BONGS",      "BONKS",      "BOOBS",      "BOOBY",      "BOOTY",      "BOOZE",      "BOOZY",      "BOWEL",
+        "BOYS",       "BOZOS",      "BRATS",      "BROTHEL",    "BUSHY",      "BUSTS",      "BUSTY",      "BUTCH",      "BUTT",
+                                                  "BUXOM",                    "CARNY",                    "CHEST",      "CHICS",
+        "CHINK",      "CHOAD",      "CHOTT",      "CHOWS",      "CHUBS",      "CHUCK",      "CHUFA",      "CHURR",      "CLITS",
+        "COCCI",      "COCK",                                   "COCOS",      "COKED",      "COKES",      "COOFS",      "COON",
+                      "CRABS",      "CRACK",      "CRAP",                     "CROZE",      "CRUCK",      "CRUDE",      "CRUDS",
+        "CUM",                      "CUNT",                     "CUPEL",      "CURNS",      "CURST",      "CURVY",      "CUTIE",
+        "DAGOS",      "DANDY",      "DARKY",      "DEMON",                    "DEVIL",      "DICK",
+        "DIKED",      "DIKER",      "DIKES",      "DIKEY",      "DILDO",      "DIRT",                     "DITCH",      "DODGE",
+        "DODGY",      "DOGGY",      "DONGA",      "DONGS",      "DOPE",                                   "DORKS",      "DORKY",
+        "DRAPE",      "DRUBS",      "DRUGS",      "DRUNK",      "DRUPE",      "DRUSE",      "DUMB",       "DWARF",      "DWEEB",
+        "DYKED",      "DYKES",      "DYKEY",      "DYNES",      "EBONY",      "ENEMA",      "ERECT",      "EVILS",      "FADOS",
+        "FAERY",      "FAG",                      "FAIRY",      "FANNY",      "FANON",      "FARDS",      "FARTS",      "FATSO",
+        "FATTY",      "FATWA",      "FAUGH",      "FECAL",      "FECES",      "FECKS",      "FEELS",      "FEEZE",      "FELCH",
+        "FETAL",      "FETAS",      "FILCH",      "FILTH",      "FISHY",      "FISTS",      "FITCH",      "FITLY",      "FLAPS",
+        "FLESH",      "FLEWS",      "FLEYS",      "FLOGS",      "FLONG",      "FORKS",      "FORKY",      "FORME",      "FREAK",
+        "FRIGS",      "FRUMP",      "FUCK",                     "FUCUS",      "FUDGE",      "FUGGY",      "FUSTY",      "FUZEE",
+        "FUZES",      "FUZZY",      "FYKES",      "FYTTE",      "GAILY",      "GANJA",      "GAPED",      "GAPER",      "GAPES",
+        "GAPPY",      "GASTS",      "GEEKS",      "GIMP",       "GIRLS",      "GIRLY",      "GIVER",      "GIZED",      "GONAD",
+        "GOOEY",      "GOOFS",      "GOOFY",      "GOOKS",      "GOONS",      "GOOPS",      "GOOPY",      "GRAPE",      "GROAT",
+        "GROGS",      "GROIN",      "GROPE",      "GUANO",      "HADAL",      "HADED",      "HADES",      "HADJI",      "HADST",
+        "HAEMS",      "HAETS",      "HAIRY",      "HAREM",      "HATE",       "HEAD",       "HEMES",      "HEMPS",      "HEMPY",
+        "HERPES",     "HOBOS",      "HOKED",      "HOKES",      "HOKEY",      "HOKKU",      "HOKUM",      "HOLE",       "HOMER",
+        "HOMES",      "HOMEY",      "HOMOS",      "HONKY",      "HOOCH",      "HOOKA",      "HORNY",      "HUMPH",      "HUMPS",
+        "HUMPY",      "HUSSY",      "HUTCH",      "HUZZA",      "HYING",      "HYMEN",      "HYPOS",      "IDIOT",      "ITCHY",
+        "JAIL",       "JERKS",      "JERKY",      "JOCKS",      "JOINT",      "JORAM",      "JORUM",      "JOTAS",      "JOUAL",
+        "JOUKS",      "JUDAS",      "JUGUM",      "KIKES",      "KILIM",      "KINKS",      "KINKY",      "KNOBS",      "KOLOS",
+        "KONKS",      "KOOKS",      "KOOKY",      "KOPHS",      "KOPJE",      "KOPPA",      "KOTOS",      "KRAFT",      "LABIA",
+        "LABRA",      "LATEX",      "LEERS",      "LEERY",      "LEGGY",      "LEMON",      "LEPTA",      "LETCH",      "LEZZY",
+        "LICK",                     "LIDOS",      "LIMEY",      "LOADS",      "LOSER",      "LOVED",      "LOVER",      "LOVES",
+        "LOWED",      "LUSTS",      "LUSTY",      "LYSES",      "LYSIN",      "LYSIS",      "LYSSA",      "LYTTA",      "MAARS",
+        "MADAM",      "MANIA",      "MANIC",      "MICHE",      "MICKS",      "MICRA",      "MILF",       "MINGE",      "MOANS",
+        "MOIST",      "MOLES",                    "MORON",      "MOUNT",      "MOUTH",      "MUCKS",      "MUCKY",      "MUCOR",
+        "MUCRO",      "MUCUS",      "MUFFS",      "NAIVE",      "NAKED",      "NANCY",      "NARCO",      "NARCS",      "NARDS",
+        "NARES",      "NARKS",      "NARKY",      "NASAL",      "NASTY",      "NATAL",      "NATCH",      "NATES",      "NERDS",
+        "NIGER",      "NOGGS",      "NOHOW",      "NOILS",      "NOSEY",      "NUBIA",      "NUCHA",      "NUDER",      "NUDES",
+        "NUDIE",      "NUKED",      "NUKES",      "OBESE",      "OPING",      "OPIUM",      "OVARY",      "PADDY",      "PANSY",
+        "PANTS",      "PENIS",      "PERKY",      "PILEI",      "PILES",      "PILIS",      "PILLS",      "PIMP",
+        "PISS",       "PLUCK",      "PLUGS",      "PLUMP",      "POKED",      "POKER",      "POKES",      "POKEY",      "POLED",
+        "POLER",      "POMMY",      "POODS",      "POOFS",      "POOFY",      "POOPS",      "PORGY",      "PORKS",      "PORKY",
+        "PORN",                                   "POSED",      "POTTO",      "POTTY",      "POUFS",      "PREST",      "PREXY",
+        "PRICK",      "PROSO",      "PROSTITUTE", "PROSY",      "PUBES",      "PUBIC",      "PUBIS",      "PUCKS",      "PUDIC",
+        "PUFFS",      "PUFFY",      "PUKED",      "PUKES",      "PUNTO",      "PUNTS",      "PUNTY",      "PUPAE",      "PUSSY",
+        "PUTTI",      "PUTTO",      "QUEER",      "QUIFF",      "RABBI",      "RABID",      "RACES",      "RACKS",      "RANDY",
+        "RAPED",      "RAPER",      "RAPES",      "RECKS",      "RECTA",      "RECTI",      "RECTO",      "RIGID",      "RIMED",
+        "RIMER",      "RIMES",      "ROMPS",      "ROOTS",      "ROOTY",      "ROWDY",      "RUMPS",      "RUTHRUSH",   "SCABS",
+        "SCATS",      "SCATT",      "SCORE",      "SCRAG",      "SCREW",      "SCRIM",      "SEAM",       "SEEDY",      "SELVA",
+        "SEMEN",      "SEWER",      "SEX",                                                  "SHAFT",      "SHAGS",      "SHIT",
+                      "SICKO",      "SICKS",      "SIRED",      "SIREN",      "SIRES",      "SIRUP",      "SISSY",      "SKIRT",
+        "SLITS",      "SLOID",      "SLOPS",      "SLOTS",      "SLOWS",      "SLOYD",      "SLUT",                     "SLYER",
+        "SMACK",      "SMOKE",      "SMOKY",      "SMUT",                     "SNOGS",      "SNOOD",      "SNOOK",      "SNOOL",
+        "SNORT",      "SNOTS",      "SNUFF",      "SOOTH",      "SOOTS",      "SPANK",      "SPERM",      "SPEWS",      "SPICA",
+        "SPICE",      "SPICK",      "SPICS",      "SPUNK",      "SQUAW",      "STIFF",      "STINK",      "STOOL",      "STRIP",
+        "STUDS",      "SUCK",                     "SUCRE",      "SUDDS",      "SUDOR",      "SWANG",      "SWANK",      "TARTS",
+        "TARTY",      "TESTA",      "TESTS",      "TESTY",      "THIEF",      "THUDS",      "THUGS",      "THUJA",      "TIGHT",
+        "TIGON",      "TIKES",      "TIKIS",      "TITS",       "TITTY",      "TUBAS",      "TUBBY",      "TUBED",      "TUCKS",
+        "TURD",                     "TWATS",      "UDDER",      "UNDEE",      "UNDIE",                    "UNZIP",      "UREAL",
         "UREAS",      "UREIC",      "URIAL",      "URINE",      "UVEAL",      "UVEAS",      "UVULA",      "VACUA",      "VAGINA",
         "VAGUS",      "VEINS",      "VEINY",      "VELAR",      "VELDS",      "VOMIT",      "VUGGY",      "VULGO",      "VULVA",
         "WACKS",      "WARTS",      "WEIRD",      "WENCH",      "WETLY",      "WHACK",      "WHOPS",      "WHORE",      "WILLY",

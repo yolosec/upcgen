@@ -30,8 +30,7 @@ using get_time = chrono::steady_clock ;
 constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-//                                   ABCDEFGHIJKLMNOPQRSTUVWXYZ
-char const * alternative_alphabet = "BBCDFFGHJJKLMNPQRSTVVWXYZZ";
+char const * alternative_alphabet = UBEE_NONINSULTING_ALPHABET;
 
 inline void generate_ssid(unsigned const char * mac, unsigned char * ssid);
 inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, unsigned char * passwd);

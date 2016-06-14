@@ -14,7 +14,7 @@ set(SOURCE_FILES
         ahocorasick/node.h
         ahocorasick/node.c
         ahocorasick/replace.h
-        ahocorasick/replace.c)
+        ahocorasick/replace.c statistics.cpp)
 
 set(SOURCE_FILES_UPC
         upc_keys_gen.h
@@ -29,8 +29,22 @@ set(SOURCE_FILES_UPC
         ahocorasick/replace.h
         ahocorasick/replace.c)
 
+set(SOURCE_FILES_STATS
+        main.h
+        statistics.cpp
+        ahocorasick/actypes.h
+        ahocorasick/ahocorasick.h
+        ahocorasick/ahocorasick.c
+        ahocorasick/mpool.h
+        ahocorasick/mpool.c
+        ahocorasick/node.h
+        ahocorasick/node.c
+        ahocorasick/replace.h
+        ahocorasick/replace.c)
+
 add_executable(upcgen ${SOURCE_FILES})
 add_executable(upckeysgen ${SOURCE_FILES_UPC})
+add_executable(stats ${SOURCE_FILES_STATS})
 
 # OpenSSL
 find_library(OPENSSL_LIB crypto $ENV{OPENSSL_LIB_PATH})
@@ -58,6 +72,7 @@ LINK_DIRECTORIES(${LINK_DIRECTORIES} ${SQLITE3_LIB})
 # Linking
 target_link_libraries(upcgen ${OPENSSL_LIB} ${SQLITE3_LIB})
 target_link_libraries(upckeysgen ${OPENSSL_LIB} ${SQLITE3_LIB})
+target_link_libraries(stats ${OPENSSL_LIB} ${SQLITE3_LIB})
 
 # Release mode for fast computation
 set(CMAKE_BUILD_TYPE Release)
