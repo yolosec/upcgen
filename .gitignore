@@ -117,3 +117,6 @@ install_manifest.txt
 .Trash-*
 
 # Created by .ignore support plugin (hsz.mobi)
+
+# IDEA project files
+.idea
