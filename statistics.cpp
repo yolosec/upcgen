@@ -64,7 +64,9 @@ int main(int argc, char ** argv) {
     unsigned long long c=0;
     unsigned long long j=0;
     unsigned long matrix[26][9];
+    unsigned long matrixP[26][9];
     memset(matrix, 0, sizeof(unsigned long)*26*9);
+    memset(matrixP, 0, sizeof(unsigned long)*26*9);
 
     // Number of all words in 8 char word language than contain x-character length profanity.
     const double profanityNum3chars = 71288256.0; // 6 * 26^5
@@ -138,6 +140,9 @@ int main(int argc, char ** argv) {
                 for(j=0; j<8; j++){
                     matrix[passwd[j]-'A'][j]+=1;
                     matrix[passwd[j]-'A'][8]+=1;
+
+                    matrixP[passwd_proffree[j]-'A'][j]+=1;
+                    matrixP[passwd_proffree[j]-'A'][8]+=1;
                 }
 
                 // Progress monitoring.
