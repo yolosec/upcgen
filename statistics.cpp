@@ -159,7 +159,7 @@ int main(int argc, char ** argv) {
     cout << "Generation done. Kill triggered: " << (keepRunning==0?"YES":"NO") << "i: " << i << endl;
     cout << "Matrix on distribution: " << endl;
     for(i=0; i<26; i++){
-        printf("%c;%06ld;%06ld;%06ld;%06ld;%06ld;%06ld;%06ld;%06ld;%06ld\n",
+        printf("%c|%06ld|%06ld|%06ld|%06ld|%06ld|%06ld|%06ld|%06ld|%06ld\n",
                'A'+(char)i,
                matrix[i][0],
                matrix[i][1],
@@ -175,7 +175,7 @@ int main(int argc, char ** argv) {
 
     printf("\n\n%%diff from the mean:\n");
     for(i=0; i<26; i++){
-        printf("%c;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f\n",
+        printf("%c|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f\n",
                'A'+(char)i,
                matrix[i][0]/645277.538461538,
                matrix[i][1]/645277.538461538,
@@ -192,7 +192,7 @@ int main(int argc, char ** argv) {
     printf("\n\nz-score:\n");
 #define POW224 16777216.0
     for(i=0; i<26; i++){
-        printf("%c;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f;%1.6f\n",
+        printf("%c|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f\n",
                'A'+(char)i,
                zscore(matrix[i][0]/POW224, 1/26.0, POW224),
                zscore(matrix[i][1]/POW224, 1/26.0, POW224),
@@ -206,19 +206,35 @@ int main(int argc, char ** argv) {
         );
     }
 
+    printf("\n\nz-score distribution:\n");
+    for(i=0; i<26; i++){
+        printf("%c|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f|%+1.6f\n",
+               'A'+(char)i,
+               zscore(matrix[i][0]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][1]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][2]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][3]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][4]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][5]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][6]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][7]/POW224, alphabetDistribution[i], POW224),
+               zscore(matrix[i][8]/(POW224*8), alphabetDistribution[i], POW224*8)
+        );
+    }
+
     printf("\n\nz-score 95%%:\n");
     for(i=0; i<26; i++){
         printf("%c|%c|%c|%c|%c|%c|%c|%c|%c|%c\n",
                'A'+(char)i,
-               abs(zscore(matrix[i][0] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][1] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][2] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][3] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][4] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][5] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][6] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][7] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][8] / (POW224 * 8), 1 / 26.0, POW224 * 8))>2.0 ? 'x' : ' '
+               abs(zscore(matrix[i][0] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][1] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][2] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][3] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][4] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][5] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][6] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][7] / POW224, 1 / 26.0, POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][8] / (POW224 * 8), 1 / 26.0, POW224 * 8))>2.0 ? 'x' : '-'
         );
     }
 
@@ -226,15 +242,15 @@ int main(int argc, char ** argv) {
     for(i=0; i<26; i++){
         printf("%c|%c|%c|%c|%c|%c|%c|%c|%c|%c\n",
                'A'+(char)i,
-               abs(zscore(matrix[i][0] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][1] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][2] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][3] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][4] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][5] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][6] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][7] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][8] / (POW224 * 8), 1 / 26.0, POW224 * 8))>2.58 ? 'x' : ' '
+               abs(zscore(matrix[i][0] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][1] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][2] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][3] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][4] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][5] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][6] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][7] / POW224, 1 / 26.0, POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][8] / (POW224 * 8), 1 / 26.0, POW224 * 8))>2.58 ? 'x' : '-'
         );
     }
 
@@ -242,15 +258,15 @@ int main(int argc, char ** argv) {
     for(i=0; i<26; i++){
         printf("%c|%c|%c|%c|%c|%c|%c|%c|%c|%c\n",
                'A'+(char)i,
-               abs(zscore(matrix[i][0] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][1] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][2] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][3] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][4] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][5] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][6] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][7] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : ' ',
-               abs(zscore(matrix[i][8] / (POW224 * 8), alphabetDistribution[i], POW224 * 8))>2.0 ? 'x' : ' '
+               abs(zscore(matrix[i][0] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][1] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][2] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][3] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][4] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][5] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][6] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][7] / POW224, alphabetDistribution[i], POW224))>2.0 ? 'x' : '-',
+               abs(zscore(matrix[i][8] / (POW224 * 8), alphabetDistribution[i], POW224 * 8))>2.0 ? 'x' : '-'
         );
     }
 
@@ -258,15 +274,15 @@ int main(int argc, char ** argv) {
     for(i=0; i<26; i++){
         printf("%c|%c|%c|%c|%c|%c|%c|%c|%c|%c\n",
                'A'+(char)i,
-               abs(zscore(matrix[i][0] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][1] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][2] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][3] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][4] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][5] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][6] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][7] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : ' ',
-               abs(zscore(matrix[i][8] / (POW224 * 8), alphabetDistribution[i], POW224 * 8))>2.58 ? 'x' : ' '
+               abs(zscore(matrix[i][0] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][1] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][2] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][3] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][4] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][5] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][6] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][7] / POW224, alphabetDistribution[i], POW224))>2.58 ? 'x' : '-',
+               abs(zscore(matrix[i][8] / (POW224 * 8), alphabetDistribution[i], POW224 * 8))>2.58 ? 'x' : '-'
         );
     }
 
