@@ -382,12 +382,14 @@ inline int generate_pass(unsigned const char * mac, unsigned char * hash_buff, u
 
     // 3.
     sprintf((char*)buff3, "%.02X%.02X%.02X%.02X%.02X%.02X", buff2[0]&0xF, buff2[1]&0xF, buff2[2]&0xF, buff2[3]&0xF, buff2[4]&0xF, buff2[5]&0xF);
+    //sprintf((char*)buff3, "%.02X%.02X%.02X%.02X%.02X%.02X", buff2[0], buff2[1], buff2[2], buff2[3], buff2[4], buff2[5]);
 
     // 4.
     MD5_Init(&ctx);
     MD5_Update(&ctx, buff3, strlen((char*)buff3)+1);
     MD5_Final(hash_buff, &ctx);
 
+    // 5.
     sprintf((char*)passwd, "%c%c%c%c%c%c%c%c",
             0x41u + ((hash_buff[0]+hash_buff[8]) % 0x1Au),
             0x41u + ((hash_buff[1]+hash_buff[9]) % 0x1Au),
