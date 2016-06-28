@@ -31,7 +31,7 @@ int init_trie();
 int deinit_trie();
 inline long contains_profanity(char const * pass, size_t len, int * numberOfProfs);
 void intHandler(int dummy);
-inline double zscore(double sample, double expected, double samples);
+inline double zscore(double observed, double expected, double samples);
 
 AC_TRIE_t *trie;
 static volatile int keepRunning = 1;
@@ -328,8 +328,8 @@ int main(int argc, char ** argv) {
     return 0;
 }
 
-inline double zscore(double sample, double expected, double samples){
-    return (sample-expected) / sqrt((expected*(1-expected))/samples);
+inline double zscore(double observed, double expected, double samples){
+    return (observed-expected) / sqrt((expected*(1-expected))/samples);
 }
 
 inline void generate_ssid(unsigned const char * mac, unsigned char * ssid)
