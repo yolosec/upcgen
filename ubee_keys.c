@@ -166,7 +166,7 @@ int main(int argc, char * argv[]){
 
     ubee_generate_ssid(mac, ssid, NULL);
     ubee_generate_pass(mac, pass, NULL);
-    printf("  your-MAC: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s\n\n",
+    printf("  your-BSSID: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s\n\n",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], ssid, pass);
 
     // Source MAC address used for computation of SSID & key is shifted.
@@ -174,12 +174,19 @@ int main(int argc, char * argv[]){
     // But the same MAC is used for computation both SSID and key so thus if SSID matches, the key matches.
     for(i=-7; i<5; i++){
         unsigned char newMac[6];
+        char * indicator = "";
         incmac(mac, newMac, i);
         ubee_generate_ssid(newMac, ssid, NULL);
         ubee_generate_pass(newMac, pass, NULL);
 
-        printf("  near-MAC: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s\n",
-               newMac[0], newMac[1], newMac[2], newMac[3], newMac[4], newMac[5], ssid, pass);
+        if (i==-3){
+            indicator = " <-- 2.4 Ghz";
+        } else if (i==-1){
+            indicator = " <-- 5.0 GHz";
+        }
+
+        printf("  near-BSSID: %.02X%.02X%.02X%.02X%.02X%.02X, SSID: %s, PASS: %s %s\n",
+               newMac[0], newMac[1], newMac[2], newMac[3], newMac[4], newMac[5], ssid, pass, indicator);
     }
 }
 
