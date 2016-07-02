@@ -68,6 +68,13 @@ while($arr=$result->fetchArray(SQLITE3_ASSOC)) {
 }
 ?>
 
+<hr/>
+
+<p><small>Disclaimer: author has no responsibility on actions that may be caused by using this service. Do not break the law
+with this service or hack WiFis. It is only for educational / research purposes.</small></p>
+
+<p><a href="https://ubee.deadcode.me/db/keys.db">SQLite3 database with passwords 1.4 GB</a>
+
 </body>
 </html>
 
