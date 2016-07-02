@@ -63,7 +63,7 @@ while($arr=$result->fetchArray(SQLITE3_ASSOC)) {
 ?>
     <br/>
     <?php
-    printf("Results: %d, lookup time: %0.6f s", $ctr, (microtime(true) - $mstart)/1000000);
+    printf("Results: %d, lookup time: %0.12f s", $ctr, (microtime(true) - $mstart)/1000000);
 
 }
 ?>
