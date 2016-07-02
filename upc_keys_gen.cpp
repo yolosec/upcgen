@@ -1,4 +1,6 @@
 //
+// Util program to generate SQLite database with password for Blasty attack.
+//
 // Created by Dusan Klinec on 06.02.16.
 //
 
@@ -134,6 +136,7 @@ int main(int argc, char ** argv) {
 //                        printf("    profanity in: %s = %10llu. SSID: %u Idx: %3ld, profanity: %12s, pass: %8s\n", serial, i,
 //                               ssid, profanity_idx, profanity, passwd);
 
+                    }
 
                         // Store to pass db. id, serial, mode, ssid, pass, profanity
                         sqlite3_bind_int64(pStmt, 1, i);
@@ -152,7 +155,7 @@ int main(int argc, char ** argv) {
                             return 1;
                         }
                         sqlite3_reset(pStmt);
-                    }
+
 
                     // Progress monitoring.
                     if ((i%10000) == 0){

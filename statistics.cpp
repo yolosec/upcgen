@@ -1,4 +1,6 @@
 //
+// Util program for statistics computation for the blog post.
+//
 // Created by Dusan Klinec on 12.06.16.
 //
 

@@ -1,3 +1,9 @@
+//
+// Util program for generating SQLite database with all passwords.
+//
+// Created by Dusan Klinec on 12.06.16.
+//
+
 #include <iostream>
 #include <signal.h>
 #include <openssl/md5.h>
