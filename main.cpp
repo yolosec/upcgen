@@ -162,14 +162,20 @@ int main(int argc, char ** argv) {
 #endif
         }
 
+#ifdef PBKDF2_CHECK
         int res = PKCS5_PBKDF2_HMAC_SHA1((char*)passwd2compute, 8, macChr2, 12, ITERATION, KEK_KEY_LEN, pbkdfed);
         hex_str(pbkdfed, (char*)pbkdfedChr, KEK_KEY_LEN);
+#endif
 
         // Store to database.
         sqlite3_bind_int64(pStmt, 1, i);
         sqlite3_bind_text(pStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
         sqlite3_bind_text(pStmt, 3, (char*)ssid, 7, SQLITE_STATIC);
+#ifdef PBKDF2_CHECK
         sqlite3_bind_text(pStmt, 4, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
+#else
+        sqlite3_bind_null(pStmt, 4);
+#endif
         if (sqlite3_step(pStmt) != SQLITE_DONE) {
             printf("\nCould not step %llu (execute) stmt %s\n", i, sqlite3_errmsg(db));
             return 1;
@@ -181,7 +187,12 @@ int main(int argc, char ** argv) {
         sqlite3_bind_text(pPassStmt, 2, (char*)macChr, 3*2, SQLITE_STATIC);
         sqlite3_bind_text(pPassStmt, 3, (char*)ssid, 7, SQLITE_STATIC);
         sqlite3_bind_text(pPassStmt, 4, (char*)passwd2compute, 8, SQLITE_STATIC);
+#ifdef PBKDF2_CHECK
         sqlite3_bind_text(pPassStmt, 5, (char*)pbkdfedChr, KEK_KEY_LEN*2, SQLITE_STATIC);
+#else
+        sqlite3_bind_null(pPassStmt, 5);
+#endif
+
         if (profanity_idx >= 0){
             sqlite3_bind_text(pPassStmt, 6, (char*)passwd, 8, SQLITE_STATIC);
             sqlite3_bind_text(pPassStmt, 7, (char*)profanity, (int)strlen(profanity), SQLITE_STATIC);
