@@ -14,7 +14,7 @@ set(SOURCE_FILES
         ahocorasick/node.h
         ahocorasick/node.c
         ahocorasick/replace.h
-        ahocorasick/replace.c statistics.cpp)
+        ahocorasick/replace.c)
 
 set(SOURCE_FILES_UPC
         upc_keys_gen.h
