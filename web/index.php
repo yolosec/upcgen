@@ -1,6 +1,6 @@
 <?php
 if (isset($_REQUEST['ssid'])){
-    $_REQUEST['ssid'] = str_replace("upc", "", strtolower($_REQUEST['ssid']));
+    $_REQUEST['ssid'] = intval(str_replace("upc", "", strtolower(trim($_REQUEST['ssid']))));
 }
 
 $doCompute=true;
@@ -62,7 +62,7 @@ if (strlen($ssid) > 7){
             <form action="index.php" method="get" role="form" class="form-inline">
                 <div class="form-group">
                     <label for="ssid">SSID: </label>
-                    UPC<input type="text" size="20" name="ssid" id="ssid" class="form-control" type="number" placeholder="2659797" value="<?=(!isset($_REQUEST['ssid'])?'':htmlentities(trim($_REQUEST['ssid'])))?>">
+                    UPC<input type="text" size="12" maxlength="7" name="ssid" id="ssid" class="form-control" type="number" placeholder="2659797" value="<?=(!isset($_REQUEST['ssid'])?'':htmlentities(trim($_REQUEST['ssid'])))?>">
                 </div>
                 <input type="submit" value="Compute" class="btn btn-primary">
             </form>
