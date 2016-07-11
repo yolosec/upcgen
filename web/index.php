@@ -125,7 +125,7 @@ while($arr=$result->fetchArray(SQLITE3_ASSOC)) {
             </small>
             </p>
 
-            <p><a href="https://ubee.deadcode.me/db/keys.db">SQLite3 database with passwords 1.4 GB</a></p>
+            <p><a href="https://ubee.deadcode.me/db/keys.db.bz2">SQLite3 database with passwords 543 MB (bz2)</a></p>
 
             <p><a href="https://deadcode.me/blog/2016/07/01/UPC-UBEE-EVW3226-WPA2-Reversing.html">Blog post about this vulnerability</a></p>
         </div>
