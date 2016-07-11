@@ -8,6 +8,7 @@ import sqlite3
 import re
 import csv
 import hashlib
+import operator
 
 leaksFile = '/Volumes/EXTDATA/wifileaks_all.tsv'
 connUbeeDB = sqlite3.connect('/Volumes/EXTDATA/ubeekeys.db')
@@ -105,6 +106,9 @@ totalidx = 0
 upc_mac_prefixes_counts = {}
 use_database_approach = False
 upc_ssid_chr_cnt = [0,0,0,0]
+upc_ubee_ssid_chr_cnt = [0,0,0,0]
+
+upc_mac_prefixes_counts_len = {}
 
 res = []
 
@@ -118,6 +122,8 @@ with open(leaksFile) as f:
         ssid = row[1].strip()
         time = row[4].strip()
         #if not re.match(r'^201[456]-', time): continue
+        #if not re.match(r'^201[56]-', time): continue
+        #if not re.match(r'^201[6]-', time): continue
 
         #if ((totalidx % 20000) == 0): print("--Idx: ", totalidx)
 
@@ -130,7 +136,11 @@ with open(leaksFile) as f:
         # ssid_no_upc = ssid[3:]
         if re.match(r'^UPC[0-9]{6,9}$', ssid):
             ssidlen = len(ssid)
+
             upc_ssid_chr_cnt[ssidlen-9] += 1
+            if isUbee:
+                upc_ubee_ssid_chr_cnt[ssidlen-9] += 1
+
             upc_count += 1
             bssid_prefix = s[0] + s[1] + s[2]
             bssid_suffix = s[3] + s[4] + s[5]
@@ -143,6 +153,12 @@ with open(leaksFile) as f:
                 upc_mac_prefixes_counts[bssid_prefix] += 1
             else:
                 upc_mac_prefixes_counts[bssid_prefix] = 1
+
+            ssiddig = ssidlen-3
+            if (ssiddig,bssid_prefix) in upc_mac_prefixes_counts_len:
+                upc_mac_prefixes_counts_len[(ssiddig,bssid_prefix)] += 1
+            else:
+                upc_mac_prefixes_counts_len[(ssiddig,bssid_prefix)] = 1
 
             upc_matches = 0
 
@@ -196,8 +212,16 @@ for r in res:
     print(r)
 
 print("UPC mac prefixes: ")
-for k in upc_mac_prefixes_counts:
-    print(" %s: %s" % (k, upc_mac_prefixes_counts[k]))
+sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1))
+for k in sorted_x:
+    print("  %s: %s" % (k[0], k[1]))
+
+for i in range(6,10):
+    print("UPC[0-9]{%d} mac prefixes: " % i)
+    clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
+    sorted_x = sorted(clst, key=operator.itemgetter(1))
+    for k in sorted_x:
+        print("  %s: %s" % (k[0], k[1]))
 
 print("Total count: ", total_count)
 print("UPC count: ", upc_count)
@@ -214,6 +238,10 @@ print("UPC 6: ", upc_ssid_chr_cnt[0])
 print("UPC 7: ", upc_ssid_chr_cnt[1])
 print("UPC 8: ", upc_ssid_chr_cnt[2])
 print("UPC 9: ", upc_ssid_chr_cnt[3])
+print("UPCubee 6: ", upc_ubee_ssid_chr_cnt[0])
+print("UPCubee 7: ", upc_ubee_ssid_chr_cnt[1])
+print("UPCubee 8: ", upc_ubee_ssid_chr_cnt[2])
+print("UPCubee 9: ", upc_ubee_ssid_chr_cnt[3])
 
 
 
