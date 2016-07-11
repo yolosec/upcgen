@@ -1,6 +1,6 @@
 <?php
 if (isset($_REQUEST['ssid'])){
-    $_REQUEST['ssid'] = sprintf('%08d', intval(str_replace("upc", "", strtolower(trim($_REQUEST['ssid'])))));
+    $_REQUEST['ssid'] = sprintf('%07d', intval(str_replace("upc", "", strtolower(trim($_REQUEST['ssid'])))));
 }
 
 $doCompute=true;
