@@ -81,7 +81,7 @@ def compute_password(mac):
 def gen_ssids(s):
     macs = []
     num = int(''.join(s), 16)
-    for i in range(-5, 5):
+    for i in range(-4, 4):
         hex_iterated = hex((num + i))[2:]
         hex_iterated_zfilled = hex_iterated.zfill(12)
         s = macstr2s(hex_iterated_zfilled)
@@ -104,6 +104,7 @@ upc_no_match = 0
 totalidx = 0
 upc_mac_prefixes_counts = {}
 use_database_approach = False
+upc_ssid_chr_cnt = [0,0,0,0]
 
 res = []
 
@@ -114,9 +115,9 @@ with open(leaksFile) as f:
         totalidx += 1
 
         bssid = row[0]
-        ssid = row[1]
-        time = row[4]
-        #if not re.match(r'^201[6]-', time): continue
+        ssid = row[1].strip()
+        time = row[4].strip()
+        #if not re.match(r'^201[456]-', time): continue
 
         #if ((totalidx % 20000) == 0): print("--Idx: ", totalidx)
 
@@ -128,6 +129,8 @@ with open(leaksFile) as f:
 
         # ssid_no_upc = ssid[3:]
         if re.match(r'^UPC[0-9]{6,9}$', ssid):
+            ssidlen = len(ssid)
+            upc_ssid_chr_cnt[ssidlen-9] += 1
             upc_count += 1
             bssid_prefix = s[0] + s[1] + s[2]
             bssid_suffix = s[3] + s[4] + s[5]
@@ -207,6 +210,10 @@ print("UBEE unknown: ", ubee_unknown)
 print("UBEE no-match: ", ubee_no_match)
 print("UBEE match: ", ubee_match)
 print("UPC no-match: ", upc_no_match)
+print("UPC 6: ", upc_ssid_chr_cnt[0])
+print("UPC 7: ", upc_ssid_chr_cnt[1])
+print("UPC 8: ", upc_ssid_chr_cnt[2])
+print("UPC 9: ", upc_ssid_chr_cnt[3])
 
 
 
