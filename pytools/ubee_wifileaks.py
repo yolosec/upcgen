@@ -109,6 +109,7 @@ upc_ssid_chr_cnt = [0,0,0,0]
 upc_ubee_ssid_chr_cnt = [0,0,0,0]
 
 upc_mac_prefixes_counts_len = {}
+topXmacs = 10
 
 res = []
 
@@ -123,7 +124,7 @@ with open(leaksFile) as f:
         time = row[4].strip()
         #if not re.match(r'^201[456]-', time): continue
         #if not re.match(r'^201[56]-', time): continue
-        #if not re.match(r'^201[6]-', time): continue
+        if not re.match(r'^201[6]-', time): continue
 
         #if ((totalidx % 20000) == 0): print("--Idx: ", totalidx)
 
@@ -212,17 +213,31 @@ for r in res:
     print(r)
 
 print("UPC mac prefixes: ")
-sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1))
+sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1), reverse=True)
 for k in sorted_x:
     print("  %s: %s" % (k[0], k[1]))
+
+if len(sorted_x) > topXmacs:
+    print("Top %d UPC mac prefixes" % topXmacs)
+    for k in range(0, min(len(sorted_x), topXmacs)):
+        print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
+    print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
 
 for i in range(6,10):
     print("UPC[0-9]{%d} mac prefixes: " % i)
     clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
-    sorted_x = sorted(clst, key=operator.itemgetter(1))
+    sorted_x = sorted(clst, key=operator.itemgetter(1), reverse=True)
     for k in sorted_x:
         print("  %s: %s" % (k[0], k[1]))
 
+    if len(clst) > topXmacs:
+        print("Top %d UPC[0-9]{%d} mac prefixes" % (topXmacs, i))
+        for k in range(0, topXmacs):
+            print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
+        print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
+
+# Other statistics
+print("\n* Statistics: ")
 print("Total count: ", total_count)
 print("UPC count: ", upc_count)
 print("UBEE count: ", ubee_count)
