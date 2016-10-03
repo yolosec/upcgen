@@ -275,7 +275,7 @@ for bssid in database_wiggle:
             style = 'blue'
 
     pmark = '<Placemark><name><![CDATA[%s]]></name><styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
-            % (ssid, style, blong, blat)
+            % (ssid, style, blat, blong)
     placemarks.append(pmark)
 
 kml += '\n'.join(placemarks)
