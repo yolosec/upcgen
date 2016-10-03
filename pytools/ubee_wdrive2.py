@@ -9,6 +9,7 @@ import re
 import hashlib
 import operator
 import sys
+import unidecode
 
 connWdrive = sqlite3.connect('/Volumes/EXTDATA/backup-1475418391308.sqlite')
 connWdrive2 = sqlite3.connect('/Volumes/EXTDATA/kismet.sqlite')
@@ -90,6 +91,12 @@ def gen_ssids(s):
         macs.append((i, hex_iterated_zfilled, ssid))
     return macs
 
+def is_ubee(mac):
+    return mac.upper().startswith('64:7C:34')
+
+def is_upc(ssid):
+    return re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
+
 
 # Statistics
 ubee_count = 0
@@ -118,6 +125,8 @@ res = []
 
 # joined database
 database = {}
+database_wiggle = {}
+placemarks = []
 
 # kismet database
 c = connWdrive2.cursor()
@@ -133,10 +142,12 @@ for row in c.execute('select bssid, ssid from network'):
 
 # wigle database
 c = connWdrive.cursor()
-for row in c.execute('select bssid, ssid from network'):
+for row in c.execute('select bssid, ssid, * from network'):
     bssid = row[0].upper().strip()
     ssid = row[1]
     wiggle_rec += 1
+    database_wiggle[bssid] = row[2:]
+
     if bssid in database:
         continue
 
@@ -237,6 +248,41 @@ for i in range(6,10):
         for k in range(0, topXmacs):
             print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
         print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
+
+
+# Generate KML map
+kml = '<?xml version="1.0" encoding="UTF-8"?>\n' \
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' \
+      '<Style id="red"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/red-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="yellow"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/yellow-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="blue"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/blue-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="green"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/green-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Folder><name>Wifi Networks</name>\n'
+
+placemarks = []
+for bssid in database_wiggle:
+    row = database_wiggle[bssid]
+    blong = row[-2]
+    blat = row[-1]
+    ssid = row[1]
+    ssid = unidecode.unidecode(ssid)
+
+    style = 'red'
+    if is_upc(ssid) and len(ssid) == 10:
+        if is_ubee(row[0]):
+            style = 'green'
+        else:
+            style = 'blue'
+
+    pmark = '<Placemark><name><![CDATA[%s]]></name><styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
+            % (ssid, style, blong, blat)
+    placemarks.append(pmark)
+
+kml += '\n'.join(placemarks)
+kml += '</Folder></Document></kml>\n'
+with open('wdriving2.kml', 'w') as kml_file:
+    kml_file.write(kml)
+
 
 # Other statistics
 print("\n* Statistics: ")
