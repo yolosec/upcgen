@@ -105,7 +105,10 @@ ubee_5 = 0
 ubee_unknown = 0
 collisions_count = 0
 total_count = 0
+huawei_count = 0
 upc_count = 0
+upc_free_count = 0
+upc_weird_count = 0
 ubee_changed_ssid = 0
 ubee_no_match = 0
 ubee_match = 0
@@ -126,7 +129,6 @@ res = []
 # joined database
 database = {}
 database_wiggle = {}
-placemarks = []
 
 # kismet database
 c = connWdrive2.cursor()
@@ -165,8 +167,20 @@ for bssid in database:
     if isUbee:
         ubee_count += 1
 
-    # ssid_no_upc = ssid[3:]
-    if re.match(r'^UPC[0-9]{6,9}$', ssid):
+    is_upc_chk = re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
+    is_weird_upc = re.match(r'^UPC[0-9A-Za-z]{3,12}$', ssid) is not None
+    is_upc_free = ssid == 'UPC Wi-Free'
+
+    if is_weird_upc and not is_upc_chk and not is_upc_free:
+        upc_weird_count += 1
+
+    if is_upc_free:
+        upc_free_count += 1
+
+    if ssid.startswith('HUAWEI-'):
+        huawei_count += 1
+
+    if is_upc_chk:
         ssidlen = len(ssid)
 
         upc_ssid_chr_cnt[ssidlen-9] += 1
@@ -221,6 +235,7 @@ for bssid in database:
 
     elif isUbee:
         ubee_changed_ssid += 1
+
 
 for r in res:
     print(r)
@@ -288,6 +303,9 @@ with open('wdriving2.kml', 'w') as kml_file:
 print("\n* Statistics: ")
 print("Total count: ", total_count)
 print("UPC count: %d (%f %%)" % (upc_count, 100.0*upc_count/float(total_count)))
+print("UPC Free count: %d (%f %%)" % (upc_free_count, 100.0*upc_free_count/float(total_count)))
+print("UPC weird count: %d (%f %%)" % (upc_weird_count, 100.0*upc_weird_count/float(total_count)))
+print("Huawei count: %d (%f %%)" % (huawei_count, 100.0*huawei_count/float(total_count)))
 print("UBEE count: ", ubee_count)
 print("UBEE changed count: ", ubee_changed_ssid)
 print("UBEE matches: %d (%f %%)" % (collisions_count, 100.0*collisions_count/(ubee_count-ubee_changed_ssid)))
