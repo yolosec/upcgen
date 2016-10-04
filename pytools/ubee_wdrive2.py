@@ -106,6 +106,7 @@ ubee_unknown = 0
 collisions_count = 0
 total_count = 0
 huawei_count = 0
+upc_any_count = 0
 upc_count = 0
 upc_free_count = 0
 upc_weird_count = 0
@@ -170,6 +171,9 @@ for bssid in database:
     is_upc_chk = re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
     is_weird_upc = re.match(r'^UPC[0-9A-Za-z]{3,12}$', ssid) is not None
     is_upc_free = ssid == 'UPC Wi-Free'
+
+    if ssid.startswith('UPC'):
+        upc_any_count += 1
 
     if is_weird_upc and not is_upc_chk and not is_upc_free:
         upc_weird_count += 1
@@ -302,6 +306,7 @@ with open('wdriving2.kml', 'w') as kml_file:
 # Other statistics
 print("\n* Statistics: ")
 print("Total count: ", total_count)
+print("UPC any: %d (%f %%)" % (upc_any_count, 100.0*upc_any_count/float(total_count)))
 print("UPC count: %d (%f %%)" % (upc_count, 100.0*upc_count/float(total_count)))
 print("UPC Free count: %d (%f %%)" % (upc_free_count, 100.0*upc_free_count/float(total_count)))
 print("UPC weird count: %d (%f %%)" % (upc_weird_count, 100.0*upc_weird_count/float(total_count)))
