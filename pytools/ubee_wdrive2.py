@@ -26,8 +26,10 @@ def get_macs(bssid_suffix):
         macs.append((i, hex_iterated_zfilled))
     return macs
 
+
 def macstr2s(m):
     return [m[0:2], m[2:4], m[4:6], m[6:8], m[8:10], m[10:12]]
+
 
 def compute_ssid(mac):
     '''
@@ -49,6 +51,7 @@ def compute_ssid(mac):
     h2 = [ord(x) for x in m2.digest()]
 
     return "UPC%d%d%d%d%d%d%d" % (h2[0]%10, h2[1]%10, h2[2]%10, h2[3]%10, h2[4]%10, h2[5]%10, h2[6]%10)
+
 
 def compute_password(mac):
     '''
@@ -80,6 +83,7 @@ def compute_password(mac):
         (0x41 + ((h2[6]+h2[14]) % 0x1A)),
         (0x41 + ((h2[7]+h2[15]) % 0x1A)))
 
+
 def gen_ssids(s):
     macs = []
     num = int(''.join(s), 16)
@@ -91,11 +95,29 @@ def gen_ssids(s):
         macs.append((i, hex_iterated_zfilled, ssid))
     return macs
 
+
 def is_ubee(mac):
     return mac.upper().startswith('64:7C:34')
 
-def is_upc(ssid):
+
+def is_vuln(mac):
+    mac = mac.upper()
+    return mac.startswith('64:7C:34') \
+           or mac.startswith('88:F7:C7') \
+           or mac.startswith('C4:27:95') \
+           or mac.startswith('58:23:8C') \
+           or mac.startswith('44:32:C8') \
+           or mac.startswith('08:95:2A') \
+           or mac.startswith('B0:C2:87') \
+           or mac.startswith('E0:88:5D')
+
+
+def is_upc_old(ssid):
     return re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
+
+
+def is_upc(ssid):
+    return re.match(r'^UPC[0-9a-zA-Z]{5,11}$', ssid) is not None and ssid != 'UPC Wi-Free'
 
 
 # Statistics
@@ -110,6 +132,7 @@ upc_any_count = 0
 upc_count = 0
 upc_free_count = 0
 upc_weird_count = 0
+upc_vuln_count = 0
 ubee_changed_ssid = 0
 ubee_no_match = 0
 ubee_match = 0
@@ -122,6 +145,7 @@ wiggle_added = 0
 wiggle_rec = 0
 kismet_rec = 0
 
+upc_mac_prefixes_weird = {}
 upc_mac_prefixes_counts_len = {}
 topXmacs = 10
 
@@ -168,21 +192,41 @@ for bssid in database:
     if isUbee:
         ubee_count += 1
 
+    if len(s) < 6:
+        continue
+
+    bssid_prefix = s[0] + s[1] + s[2]
+    bssid_suffix = s[3] + s[4] + s[5]
+
     is_upc_chk = re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
-    is_weird_upc = re.match(r'^UPC[0-9A-Za-z]{3,12}$', ssid) is not None
+    is_weird_upc = re.match(r'^UPC[0-9A-Za-z]{3,12}$', ssid) is not None and not is_upc_chk
     is_upc_free = ssid == 'UPC Wi-Free'
 
-    if ssid.startswith('UPC'):
+    if ssid.startswith('UPC') and not is_upc_free:
         upc_any_count += 1
 
     if is_weird_upc and not is_upc_chk and not is_upc_free:
         upc_weird_count += 1
+        if bssid_prefix in upc_mac_prefixes_weird:
+            upc_mac_prefixes_weird[bssid_prefix] += 1
+        else:
+            upc_mac_prefixes_weird[bssid_prefix] = 1
 
     if is_upc_free:
         upc_free_count += 1
 
     if ssid.startswith('HUAWEI-'):
         huawei_count += 1
+
+    if is_vuln(bssid):
+        upc_vuln_count += 1
+
+    # MAC count for all UPC routers
+    if is_weird_upc or is_upc_chk:
+        if bssid_prefix in upc_mac_prefixes_counts:
+            upc_mac_prefixes_counts[bssid_prefix] += 1
+        else:
+            upc_mac_prefixes_counts[bssid_prefix] = 1
 
     if is_upc_chk:
         ssidlen = len(ssid)
@@ -192,17 +236,10 @@ for bssid in database:
             upc_ubee_ssid_chr_cnt[ssidlen-9] += 1
 
         upc_count += 1
-        bssid_prefix = s[0] + s[1] + s[2]
-        bssid_suffix = s[3] + s[4] + s[5]
 
         macs = get_macs(bssid_suffix)
         itmap = {}
         for it,mac in macs: itmap[str(mac)] = it
-
-        if bssid_prefix in upc_mac_prefixes_counts:
-            upc_mac_prefixes_counts[bssid_prefix] += 1
-        else:
-            upc_mac_prefixes_counts[bssid_prefix] = 1
 
         ssiddig = ssidlen-3
         if (ssiddig,bssid_prefix) in upc_mac_prefixes_counts_len:
@@ -244,35 +281,58 @@ for bssid in database:
 for r in res:
     print(r)
 
-print("UPC mac prefixes: ")
-sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1), reverse=True)
-for k in sorted_x:
-    print("  %s: %s" % (k[0], k[1]))
 
-if len(sorted_x) > topXmacs:
-    print("Top %d UPC mac prefixes" % topXmacs)
-    for k in range(0, min(len(sorted_x), topXmacs)):
-        print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
-    print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
-
-for i in range(6,10):
-    print("UPC[0-9]{%d} mac prefixes: " % i)
-    clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
+def print_max_prefixes(clst, caption):
+    print(caption)
     sorted_x = sorted(clst, key=operator.itemgetter(1), reverse=True)
     for k in sorted_x:
         print("  %s: %s" % (k[0], k[1]))
 
     if len(clst) > topXmacs:
-        print("Top %d UPC[0-9]{%d} mac prefixes" % (topXmacs, i))
+        print("Top %d %s" % (topXmacs, caption))
         for k in range(0, topXmacs):
             print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
         print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
+    print('')
+
+
+print_max_prefixes(upc_mac_prefixes_counts.items(), 'UPC mac prefixes: ')
+for i in range(6,10):
+    clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
+    print_max_prefixes(clst, "UPC[0-9]{%d} mac prefixes: " % i)
+print_max_prefixes(upc_mac_prefixes_weird.items(), 'UPC weird prefixes: ')
+
+# print("UPC mac prefixes: ")
+#
+# sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1), reverse=True)
+# for k in sorted_x:
+#     print("  %s: %s" % (k[0], k[1]))
+#
+# if len(sorted_x) > topXmacs:
+#     print("Top %d UPC mac prefixes" % topXmacs)
+#     for k in range(0, min(len(sorted_x), topXmacs)):
+#         print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
+#     print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
+
+#
+# for i in range(6,10):
+#     print("UPC[0-9]{%d} mac prefixes: " % i)
+#     clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
+#     sorted_x = sorted(clst, key=operator.itemgetter(1), reverse=True)
+#     for k in sorted_x:
+#         print("  %s: %s" % (k[0], k[1]))
+#
+#     if len(clst) > topXmacs:
+#         print("Top %d UPC[0-9]{%d} mac prefixes" % (topXmacs, i))
+#         for k in range(0, topXmacs):
+#             print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
+#         print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
 
 
 # Generate KML map
 kml = '<?xml version="1.0" encoding="UTF-8"?>\n' \
       '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' \
-      '<Style id="red"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/red-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="red"><IconStyle><Icon><href>http://i67.tinypic.com/t64076.jpg</href></Icon></IconStyle></Style>\n' \
       '<Style id="yellow"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/yellow-dot.png</href></Icon></IconStyle></Style>\n' \
       '<Style id="blue"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/blue-dot.png</href></Icon></IconStyle></Style>\n' \
       '<Style id="green"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/green-dot.png</href></Icon></IconStyle></Style>\n' \
@@ -307,13 +367,14 @@ with open('wdriving2.kml', 'w') as kml_file:
 print("\n* Statistics: ")
 print("Total count: ", total_count)
 print("UPC any: %d (%f %%)" % (upc_any_count, 100.0*upc_any_count/float(total_count)))
-print("UPC count: %d (%f %%)" % (upc_count, 100.0*upc_count/float(total_count)))
+print("UPC[0-9]{6,9} count: %d (%f %%)" % (upc_count, 100.0*upc_count/float(total_count)))
 print("UPC Free count: %d (%f %%)" % (upc_free_count, 100.0*upc_free_count/float(total_count)))
-print("UPC weird count: %d (%f %%)" % (upc_weird_count, 100.0*upc_weird_count/float(total_count)))
+print("UPC weird count: %d (%f %% UPC)" % (upc_weird_count, 100.0*upc_weird_count/float(upc_any_count)))
+print("UPC vulnerable: %d (%f %% UPC)" % (upc_vuln_count, 100.0*upc_vuln_count/float(upc_any_count)))
 print("Huawei count: %d (%f %%)" % (huawei_count, 100.0*huawei_count/float(total_count)))
 print("UBEE count: ", ubee_count)
-print("UBEE changed count: ", ubee_changed_ssid)
-print("UBEE matches: %d (%f %%)" % (collisions_count, 100.0*collisions_count/(ubee_count-ubee_changed_ssid)))
+print("UBEE changed count: %d (%f %%)" % (ubee_changed_ssid, 100.0*ubee_changed_ssid/ubee_count))
+print("UBEE matches: %d (%f %%), (%f %% UPC)" % (collisions_count, 100.0*collisions_count/(ubee_count-ubee_changed_ssid), 100.0*collisions_count/upc_any_count))
 print("UBEE 2.4: ", ubee_24)
 print("UBEE 5.0: ", ubee_5)
 print("UBEE unknown: ", ubee_unknown)
