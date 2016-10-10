@@ -112,6 +112,20 @@ def is_vuln(mac):
            or mac.startswith('E0:88:5D')
 
 
+def is_upc_mac(mac):
+    mac = mac.upper()
+    return mac.startswith('64:7C:34') \
+           or mac.startswith('88:F7:C7') \
+           or mac.startswith('C4:27:95') \
+           or mac.startswith('58:23:8C') \
+           or mac.startswith('44:32:C8') \
+           or mac.startswith('08:95:2A') \
+           or mac.startswith('B0:C2:87') \
+           or mac.startswith('E0:88:5D') \
+           or mac.startswith('54:67:51') \
+           or mac.startswith('DC:53:7C')
+
+
 def is_upc_old(ssid):
     return re.match(r'^UPC[0-9]{6,9}$', ssid) is not None
 
@@ -133,6 +147,8 @@ upc_count = 0
 upc_free_count = 0
 upc_weird_count = 0
 upc_vuln_count = 0
+upc_vuln_changed_count = 0
+upc_changed = 0
 ubee_changed_ssid = 0
 ubee_no_match = 0
 ubee_match = 0
@@ -145,6 +161,7 @@ wiggle_added = 0
 wiggle_rec = 0
 kismet_rec = 0
 
+upc_mac_prefixes_changed = {}
 upc_mac_prefixes_weird = {}
 upc_mac_prefixes_counts_len = {}
 topXmacs = 10
@@ -218,8 +235,18 @@ for bssid in database:
     if ssid.startswith('HUAWEI-'):
         huawei_count += 1
 
-    if is_vuln(bssid):
+    if is_vuln(bssid) and is_upc_chk:
         upc_vuln_count += 1
+
+    if is_vuln(bssid) and not is_upc_chk:
+        upc_vuln_changed_count += 1
+
+    if is_upc_mac(bssid) and not (is_upc_chk or is_weird_upc):
+        upc_changed += 1
+        if bssid_prefix in upc_mac_prefixes_changed:
+            upc_mac_prefixes_changed[bssid_prefix] += 1
+        else:
+            upc_mac_prefixes_changed[bssid_prefix] = 1
 
     # MAC count for all UPC routers
     if is_weird_upc or is_upc_chk:
@@ -301,33 +328,7 @@ for i in range(6,10):
     clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
     print_max_prefixes(clst, "UPC[0-9]{%d} mac prefixes: " % i)
 print_max_prefixes(upc_mac_prefixes_weird.items(), 'UPC weird prefixes: ')
-
-# print("UPC mac prefixes: ")
-#
-# sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1), reverse=True)
-# for k in sorted_x:
-#     print("  %s: %s" % (k[0], k[1]))
-#
-# if len(sorted_x) > topXmacs:
-#     print("Top %d UPC mac prefixes" % topXmacs)
-#     for k in range(0, min(len(sorted_x), topXmacs)):
-#         print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
-#     print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
-
-#
-# for i in range(6,10):
-#     print("UPC[0-9]{%d} mac prefixes: " % i)
-#     clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
-#     sorted_x = sorted(clst, key=operator.itemgetter(1), reverse=True)
-#     for k in sorted_x:
-#         print("  %s: %s" % (k[0], k[1]))
-#
-#     if len(clst) > topXmacs:
-#         print("Top %d UPC[0-9]{%d} mac prefixes" % (topXmacs, i))
-#         for k in range(0, topXmacs):
-#             print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
-#         print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
-
+print_max_prefixes(upc_mac_prefixes_changed.items(), 'UPC changed prefixes: ')
 
 # Generate KML map
 kml = '<?xml version="1.0" encoding="UTF-8"?>\n' \
@@ -371,6 +372,8 @@ print("UPC[0-9]{6,9} count: %d (%f %%)" % (upc_count, 100.0*upc_count/float(tota
 print("UPC Free count: %d (%f %%)" % (upc_free_count, 100.0*upc_free_count/float(total_count)))
 print("UPC weird count: %d (%f %% UPC)" % (upc_weird_count, 100.0*upc_weird_count/float(upc_any_count)))
 print("UPC vulnerable: %d (%f %% UPC)" % (upc_vuln_count, 100.0*upc_vuln_count/float(upc_any_count)))
+print("UPC vulnerable changed: %d (%f %% UPC)" % (upc_vuln_changed_count, 100.0*upc_vuln_changed_count/float(upc_any_count)))
+print("UPC changed: %d (%f %% UPC)" % (upc_changed, 100.0*upc_changed/float(upc_any_count)))
 print("Huawei count: %d (%f %%)" % (huawei_count, 100.0*huawei_count/float(total_count)))
 print("UBEE count: ", ubee_count)
 print("UBEE changed count: %d (%f %%)" % (ubee_changed_ssid, 100.0*ubee_changed_ssid/ubee_count))
