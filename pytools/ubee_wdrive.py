@@ -222,8 +222,10 @@ for bssid in database_wiggle:
         else:
             style = 'blue'
 
-    pmark = '<Placemark><name><![CDATA[%s]]></name><styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
-            % (ssid, style, blat, blong)
+    pmark = '<Placemark><name><![CDATA[%s]]></name><description><![CDATA[BSSID: %s]]></description>' \
+            '<styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
+            % (ssid, bssid[0:8], style, blat, blong)
+
     placemarks.append(pmark)
 
 kml += '\n'.join(placemarks)
