@@ -155,3 +155,25 @@ def print_max_prefixes(clst, caption, topXmacs=10):
     print('')
 
 
+def binarySearch(data, val):
+    highIndex = len(data)-1
+    lowIndex = 0
+    while highIndex > lowIndex:
+            index = (highIndex + lowIndex) / 2
+            sub = data[index]
+            if data[lowIndex] == val:
+                    return [lowIndex, lowIndex]
+            elif sub == val:
+                    return [index, index]
+            elif data[highIndex] == val:
+                    return [highIndex, highIndex]
+            elif sub > val:
+                    if highIndex == index:
+                            return sorted([highIndex, lowIndex])
+                    highIndex = index
+            else:
+                    if lowIndex == index:
+                            return sorted([highIndex, lowIndex])
+                    lowIndex = index
+    return sorted([highIndex, lowIndex])
+
