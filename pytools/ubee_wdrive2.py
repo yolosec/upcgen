@@ -54,10 +54,11 @@ res = []
 # joined database
 database = {}
 database_wiggle = {}
+database_kismet = {}
 
 # kismet database
 c = connWdrive2.cursor()
-for row in c.execute('select bssid, ssid from network'):
+for row in c.execute('select bssid, ssid, lasttime from network'):
     bssid = row[0].upper().strip()
     ssid = row[1]
     if bssid in database:
@@ -65,6 +66,7 @@ for row in c.execute('select bssid, ssid from network'):
         continue
 
     database[bssid] = ssid
+    database_kismet[bssid] = row
     kismet_rec += 1
 
 # wigle database
@@ -233,6 +235,71 @@ for bssid in database_wiggle:
             % (ssid, bssid[0:8], style, blat, blong)
     placemarks.append(pmark)
 
+# Adding Kismet data to the map - estimation.
+# Build location database based on time
+# lasttime_db[time] = [loc1, loc2, ..., locN]
+lasttime_db = {}
+time_diffs = []
+for bssid in database_wiggle:
+    row = database_wiggle[bssid]
+    blong = row[-2]
+    blat = row[-1]
+    lasttime = row[4]
+    if lasttime not in lasttime_db:
+        lasttime_db[lasttime] = [(blong, blat)]
+    else:
+        lasttime_db[lasttime].append((blong, blat))
+
+    # Time sync - if BSSID was caught by both devices, meassure the time difference.
+    # Collect time differences to the array for later averaging.
+    if bssid in database_kismet and lasttime > 100000:
+        kistime = database_kismet[bssid][2]*1000.0
+        if kistime > 100000:
+            time_diffs.append(long(lasttime - kistime))
+
+time_diffs = sorted(time_diffs)
+total_time_diff = sum(time_diffs) / float(len(time_diffs))
+print('Total time diff wiggle-kismet: %f mode: %f, total: %d'
+      % (total_time_diff, time_diffs[len(time_diffs)/2], len(time_diffs)))
+
+# Average positions on the same time to get the best estimate
+lasttime_db_avg = []
+for lasttime in lasttime_db:
+    positions = lasttime_db[lasttime]
+    avg_x = sum([x[0] for x in positions])/float(len(positions))
+    avg_y = sum([x[1] for x in positions])/float(len(positions))
+    lasttime_db_avg.append((lasttime, avg_x, avg_y))
+
+# Sort wiggle database record based on the time.
+# It would be better to do binary search to get the closes point, but... OK later.
+lasttime_db_avg = sorted(list(lasttime_db_avg), key=lambda x: x[0])
+
+# Add also Kismet data - based on the wiggle position estimate.
+kismet_placemarks_added = 0
+for idx, bssid in enumerate(database_kismet):
+    if bssid in database_wiggle:
+        continue
+
+    cur_time = database_kismet[bssid][2]*1000.0 + total_time_diff
+    closest_rec = min(lasttime_db_avg, key=lambda x: abs(x[0] - cur_time))
+
+    # Add as a placemark.
+    ssid = database_kismet[bssid][1]
+    ssid = unidecode.unidecode(ssid)
+
+    style = 'red'
+    if is_upc(ssid) and len(ssid) == 10:
+        if is_ubee(bssid):
+            style = 'green'
+        else:
+            style = 'blue'
+
+    pmark = '<Placemark><name><![CDATA[%s]]></name><description><![CDATA[BSSID: %s<br/>Estimate]]></description>' \
+            '<styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
+            % (ssid, bssid[0:8], style, closest_rec[2], closest_rec[1])
+    placemarks.append(pmark)
+    kismet_placemarks_added += 1
+
 kml += '\n'.join(placemarks)
 kml += '</Folder></Document></kml>\n'
 with open('wdriving2.kml', 'w') as kml_file:
@@ -271,6 +338,7 @@ print("UPCubee 7: ", upc_ubee_ssid_chr_cnt[1])
 print("UPCubee 8: ", upc_ubee_ssid_chr_cnt[2])
 print("UPCubee 9: ", upc_ubee_ssid_chr_cnt[3])
 print("Wiggle added to kismet DB: %s" % wiggle_added)
+print("Kismet placemarks added: %d" % kismet_placemarks_added)
 print("KismetDB rec: %d, WigleDB rec: %d, total db size: %d " % (kismet_rec, wiggle_rec, len(database)))
 
 
