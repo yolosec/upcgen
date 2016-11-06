@@ -9,6 +9,9 @@ import re
 import csv
 import hashlib
 import operator
+import unidecode
+import random
+from functions import *
 
 leaksFile = '/Volumes/EXTDATA/wifileaks_all.tsv'
 connUbeeDB = sqlite3.connect('/Volumes/EXTDATA/ubeekeys.db')
@@ -112,6 +115,7 @@ upc_mac_prefixes_counts_len = {}
 topXmacs = 10
 
 res = []
+rec_db = []
 
 with open(leaksFile) as f:
     reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
@@ -122,11 +126,16 @@ with open(leaksFile) as f:
         bssid = row[0]
         ssid = row[1].strip()
         time = row[4].strip()
+        blat = row[3].strip()
+        blong = row[2].strip()
+
         #if not re.match(r'^201[456]-', time): continue
-        #if not re.match(r'^201[56]-', time): continue
-        if not re.match(r'^201[6]-', time): continue
+        if not re.match(r'^201[56]-', time): continue
+        #if not re.match(r'^201[6]-', time): continue
 
         #if ((totalidx % 20000) == 0): print("--Idx: ", totalidx)
+
+        rec_db.append((bssid, ssid, time, blat, blong))
 
         total_count += 1
         s = bssid.split(':')
@@ -209,8 +218,8 @@ with open(leaksFile) as f:
         elif isUbee:
             ubee_changed_ssid += 1
 
-for r in res:
-    print(r)
+# for r in res:
+#     print(r)
 
 print("UPC mac prefixes: ")
 sorted_x = sorted(upc_mac_prefixes_counts.items(), key=operator.itemgetter(1), reverse=True)
@@ -236,6 +245,69 @@ for i in range(6,10):
             print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
         print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
 
+# Generate KML map
+kml = '<?xml version="1.0" encoding="UTF-8"?>\n' \
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' \
+      '<Style id="red"><IconStyle><Icon><href>http://i67.tinypic.com/t64076.jpg</href></Icon></IconStyle></Style>\n' \
+      '<Style id="yellow"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/yellow-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="blue"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/blue-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Style id="green"><IconStyle><Icon><href>http://maps.google.com/mapfiles/ms/icons/green-dot.png</href></Icon></IconStyle></Style>\n' \
+      '<Folder><name>Wifi Networks</name>\n'
+
+kml_upc_max = 50000.0
+kml_upc_take_rate = min(1.0, kml_upc_max / float(upc_count))
+upc_ratio = float(upc_count)/float(total_count)
+non_upc_sample_taken = 0
+upc_sample_taken = 0
+
+placemarks = []
+for row in rec_db:
+    bssid, ssid, time, blat, blong = row
+    c_is_upc = is_upc(ssid)
+    c_is_ubee = is_ubee(bssid)
+    c_take_into = c_is_ubee or c_is_upc or ssid.startswith('upc')
+
+    # Take only the similar amount of other networks than we have UPC
+    if not c_take_into:
+        # dataset is too large, skip non-interesting networks.
+        continue
+
+        # roll = random.random()
+        # if roll > upc_ratio*kml_upc_take_rate:
+        #     continue
+    else:
+        # So big dataset we have to sample even UPC networks
+        roll = random.random()
+        if roll > kml_upc_take_rate:
+            continue
+
+    # Still too big, drop all non-UPC
+    # if not c_take_into:
+    #     continue
+
+    if c_take_into:
+        upc_sample_taken += 1
+    else:
+        non_upc_sample_taken += 1
+
+    style = 'red'
+    if c_is_upc and len(ssid) == 10:
+        if c_is_ubee:
+            style = 'green'
+        else:
+            style = 'blue'
+
+    pmark = '<Placemark><name><![CDATA[%s]]></name><description><![CDATA[BSSID: %s<br/>%s]]></description>' \
+            '<styleUrl>#%s</styleUrl><Point><coordinates>%s,%s</coordinates></Point></Placemark>' \
+            % (ssid, bssid[0:8], time, style, blat, blong)
+
+    placemarks.append(pmark)
+
+kml += '\n'.join(placemarks)
+kml += '</Folder></Document></kml>\n'
+with open('wdriving_wifileaks.kml', 'w') as kml_file:
+    kml_file.write(kml)
+
 # Other statistics
 print("\n* Statistics: ")
 print("Total count: ", total_count)
@@ -257,6 +329,10 @@ print("UPCubee 6: ", upc_ubee_ssid_chr_cnt[0])
 print("UPCubee 7: ", upc_ubee_ssid_chr_cnt[1])
 print("UPCubee 8: ", upc_ubee_ssid_chr_cnt[2])
 print("UPCubee 9: ", upc_ubee_ssid_chr_cnt[3])
+print("upc_ratio: ", upc_ratio)
+print("kml_upc_take_rate: ", kml_upc_take_rate)
+print("upc_sample_taken: ", upc_sample_taken)
+print("non_upc_sample_taken: ", non_upc_sample_taken)
 
 
 
