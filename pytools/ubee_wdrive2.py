@@ -317,7 +317,7 @@ print("UPC vulnerable: %d (%f %% UPC)" % (upc_vuln_count, 100.0*upc_vuln_count/f
 print("UPC vulnerable changed: %d (%f %% UPC)" % (upc_vuln_changed_count, 100.0*upc_vuln_changed_count/float(upc_any_count)))
 print("UPC changed: %d (%f %% UPC)" % (upc_changed, 100.0*upc_changed/float(upc_any_count)))
 print("UPC technicolor: %d (%f %% UPC)" % (upc_technicolor_count, 100.0*upc_technicolor_count/float(upc_any_count)))
-print("UPC technicolor changed: %d (%f %% UPC)" % (upc_technicolor_changed, 100.0*upc_technicolor_changed/float(upc_any_count)))
+print("UPC technicolor changed: %d (%f %% UPC %f %% Tech)" % (upc_technicolor_changed, 100.0*upc_technicolor_changed/float(upc_any_count), 100.0*upc_technicolor_changed/upc_technicolor_count))
 
 print("Huawei count: %d (%f %%)" % (huawei_count, 100.0*huawei_count/float(total_count)))
 print("UBEE count: ", ubee_count)
