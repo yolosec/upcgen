@@ -199,7 +199,7 @@ for bssid in database:
 for r in res:
     print(r)
 
-print_max_prefixes(upc_mac_prefixes_counts.items(), 'UPC mac prefixes: ')
+print_max_prefixes(upc_mac_prefixes_counts.items(), 'UPC mac prefixes: ', database=database)
 for i in range(6,10):
     clst = [(x[1],upc_mac_prefixes_counts_len[x]) for x in upc_mac_prefixes_counts_len if x[0] == i]
     print_max_prefixes(clst, "UPC[0-9]{%d} mac prefixes: " % i)

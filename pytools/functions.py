@@ -141,17 +141,32 @@ def is_upc(ssid):
     return re.match(r'^UPC[0-9a-zA-Z]{5,11}$', ssid) is not None and ssid != 'UPC Wi-Free'
 
 
-def print_max_prefixes(clst, caption, topXmacs=10):
+def print_max_prefixes(clst, caption='', topXmacs=10, database=None):
     print(caption)
+
+    # Database search in total?
+    total_db_numbers = {}
+    if database is not None:
+        for rec in clst:
+            key = rec[0]
+            prefix = rec[0][0:2] + ':' + rec[0][2:4]+ ':' + rec[0][4:6]
+            total_db_numbers[key] = 0
+            for bssid in database:
+                if bssid.startswith(prefix):
+                    total_db_numbers[key] += 1
+
     sorted_x = sorted(clst, key=operator.itemgetter(1), reverse=True)
     for k in sorted_x:
-        print("  %s: %s" % (k[0], k[1]))
+        if database is not None:
+            print("  %s: %04d total: %04d" % (k[0], k[1], total_db_numbers[k[0]]))
+        else:
+            print("  %s: %04d" % (k[0], k[1]))
 
     if len(clst) > topXmacs:
         print("Top %d %s" % (topXmacs, caption))
         for k in range(0, topXmacs):
-            print("  %s: %s" % (sorted_x[k][0], sorted_x[k][1]))
-        print("  rest: %s" % sum([x[1] for x in sorted_x[topXmacs:]]))
+            print("  %s: %04d" % (sorted_x[k][0], sorted_x[k][1]))
+        print("  rest: %04d" % sum([x[1] for x in sorted_x[topXmacs:]]))
     print('')
 
 
